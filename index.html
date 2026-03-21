@@ -35,6 +35,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .ld-bar { width: 160px; height: 3px; background: rgba(255,255,255,.1); border-radius: 20px; overflow: hidden; margin-top: 6px; }
 .ld-progress { height: 100%; background: var(--accent); border-radius: 20px; animation: ldp 1.6s ease forwards; }
 @keyframes ldp { from { width: 0 } to { width: 100% } }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
 
 /* SYNC TOAST */
 #sync-toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 300; padding: 8px 18px; border-radius: 20px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
@@ -370,7 +371,10 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   <div class="sidebar-footer">
     <div class="user-card">
       <div class="user-avatar">K</div>
-      <div><div class="user-name">Kovach</div><div class="user-role" id="user-status">Firebase · онлайн</div></div>
+      <div style="flex:1"><div class="user-name">Kovach</div><div class="user-role" id="user-status">Firebase · онлайн</div></div>
+      <div onclick="window._logout()" title="Вийти" style="cursor:pointer;color:#4b4c63;padding:4px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#4b4c63'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
     </div>
   </div>
 </nav>
@@ -734,6 +738,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
 
 firebase.initializeApp({
@@ -745,6 +750,7 @@ firebase.initializeApp({
   appId: "1:141051347373:web:03d3d91607a2ecfeaba124"
 });
 const db_fs = firebase.firestore();
+const auth = firebase.auth();
 const DOCREF = db_fs.collection('kpay').doc('main');
 
 // ── STATE ──
@@ -1627,10 +1633,93 @@ function seedDemoData() {
   [['Фріланс','💻'],['Оренда','🏘'],['Дивіденди','📈'],['Продаж','🛒']].forEach(([name,icon])=>{ const id=uid(); db.incomeCats.push({id,name,icon}); for(let i=0;i<6;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.incomes.push({id:uid(),catId:id,amount:Math.round(2000+Math.random()*8000),date:key+'-15',desc:'Надходження'}); } });
 }
 
-// ── BOOT ──
-loadFromFirebase();
-window.addEventListener('online', ()=>{ setOnline(true); saveToFirebase(); });
-window.addEventListener('offline', ()=>setOnline(false));
+// ── BOOT — Firebase Authentication ──
+function showAuthScreen(errorMsg) {
+  const ls = document.getElementById('loading-screen');
+  ls.style.animation = 'none';
+  ls.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%;max-width:340px;padding:0 20px;">
+      <div style="width:68px;height:68px;border-radius:20px;background:linear-gradient(135deg,#7c6ef7,#a78bfa);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:22px;letter-spacing:-.02em;margin-bottom:14px">K·P</div>
+      <div style="color:#fff;font-size:24px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px">K-Pay</div>
+      <div style="color:#9192a6;font-size:13px;margin-bottom:28px">Введіть дані для входу</div>
+      <input id="auth-email" type="email" placeholder="Email"
+        style="width:100%;background:#1e1f2b;border:1.5px solid #3a3b4e;border-radius:12px;padding:13px 18px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;outline:none;margin-bottom:10px"
+        onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()">
+      <input id="auth-pass" type="password" placeholder="Пароль"
+        style="width:100%;background:#1e1f2b;border:1.5px solid #3a3b4e;border-radius:12px;padding:13px 18px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;outline:none;margin-bottom:10px;letter-spacing:.1em"
+        onkeydown="if(event.key==='Enter')window._doLogin()">
+      <button id="auth-btn" onclick="window._doLogin()"
+        style="width:100%;background:#7c6ef7;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer">
+        Увійти →
+      </button>
+      <div id="auth-err" style="color:#ef4444;font-size:13px;margin-top:10px;min-height:18px;text-align:center">${errorMsg||''}</div>
+    </div>`;
+
+  window._doLogin = async function() {
+    const email = document.getElementById('auth-email').value.trim();
+    const pass  = document.getElementById('auth-pass').value;
+    const btn   = document.getElementById('auth-btn');
+    const err   = document.getElementById('auth-err');
+    if (!email || !pass) { err.textContent = 'Введіть email і пароль'; return; }
+    btn.textContent = 'Вхід…';
+    btn.style.opacity = '0.7';
+    err.textContent = '';
+    try {
+      await auth.signInWithEmailAndPassword(email, pass);
+      // onAuthStateChanged спрацює автоматично
+    } catch(e) {
+      btn.textContent = 'Увійти →';
+      btn.style.opacity = '1';
+      const msgs = {
+        'auth/invalid-email':       'Невірний формат email',
+        'auth/user-not-found':      'Користувача не знайдено',
+        'auth/wrong-password':      'Невірний пароль',
+        'auth/invalid-credential':  'Невірний email або пароль',
+        'auth/too-many-requests':   'Забагато спроб — спробуйте пізніше',
+      };
+      err.textContent = msgs[e.code] || 'Помилка входу';
+      const inp = document.getElementById('auth-pass');
+      inp.style.borderColor = '#ef4444';
+      inp.style.animation = 'shake .3s ease';
+      setTimeout(() => { inp.style.borderColor = '#3a3b4e'; inp.style.animation = ''; }, 600);
+    }
+  };
+}
+
+function showLoadingScreen() {
+  const ls = document.getElementById('loading-screen');
+  ls.style.display = 'flex';
+  ls.innerHTML = `
+    <div class="ld-logo">K·P</div>
+    <div class="ld-name">K-Pay</div>
+    <div class="ld-sub">Підключення до Firebase…</div>
+    <div class="ld-bar"><div class="ld-progress"></div></div>`;
+}
+
+// Слухаємо стан авторизації — це головна точка входу
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    // Користувач увійшов — завантажуємо дані
+    showLoadingScreen();
+    // Показуємо email у сайдбарі
+    const userStatus = document.getElementById('user-status');
+    if (userStatus) userStatus.textContent = user.email;
+    loadFromFirebase();
+  } else {
+    // Не авторизований — показуємо форму входу
+    showAuthScreen();
+  }
+});
+
+// Logout
+window._logout = function() {
+  if (confirm('Вийти з K-Pay?')) {
+    auth.signOut().then(() => showAuthScreen());
+  }
+};
+
+window.addEventListener('online',  () => { setOnline(true);  saveToFirebase(); });
+window.addEventListener('offline', () => setOnline(false));
 
 </script>
 </body>
