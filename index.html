@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="K-Pay">
 <title>K-Pay · Облік зарплати</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%237c6ef7'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='800' font-size='26' fill='white'>K·P</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/index.js"></script>
 <style>
@@ -208,14 +209,29 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 .legend-val { font-weight: 400; color: var(--text); }
 .legend-pct { font-size: 11px; color: var(--text-muted); }
 
-/* MODAL — bottom sheet on mobile/iPad */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(15,15,30,.45); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
-.overlay.open { display: flex; }
-.modal { background: var(--white); border-radius: 20px 20px 0 0; padding: 20px 24px max(28px,env(safe-area-inset-bottom)); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 -8px 40px rgba(0,0,0,.16); animation: sheetUp .25s ease; -webkit-overflow-scrolling: touch; }
-@keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
-.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 20px; margin: 0 auto 16px; }
-.modal-title { font-size: 17px; font-weight: 800; margin-bottom: 18px; }
-.modal-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
+/* MODAL — centered + draggable */
+.overlay { display:none; position:fixed; inset:0; background:rgba(15,15,30,.45); z-index:100; align-items:center; justify-content:center; backdrop-filter:blur(4px); padding:20px; }
+.overlay.open { display:flex; }
+.modal { background:var(--white); border-radius:18px; width:100%; max-width:580px; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,.22); animation:modalIn .2s ease; position:relative; }
+@keyframes modalIn { from{transform:scale(.96) translateY(6px);opacity:0} to{transform:none;opacity:1} }
+.modal-drag-bar { height:48px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 20px; border-bottom:1px solid var(--border); cursor:grab; user-select:none; background:var(--white); border-radius:18px 18px 0 0; }
+.modal-drag-bar:active { cursor:grabbing; }
+.modal-drag-dot { width:32px; height:4px; background:var(--border); border-radius:20px; margin:0 auto; }
+.modal-drag-title { font-size:15px; font-weight:700; position:absolute; left:50%; transform:translateX(-50%); pointer-events:none; }
+.modal-close-x { width:28px; height:28px; border-radius:50%; border:none; background:var(--bg); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:18px; line-height:1; transition:all .15s; flex-shrink:0; }
+.modal-close-x:hover { background:var(--red-light); color:var(--red); }
+.modal-body { padding:20px 24px; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch; }
+.modal-handle { display:none; }
+.modal-title { font-size:17px; font-weight:800; margin-bottom:16px; }
+.modal-footer { display:flex; gap:10px; padding:14px 24px; border-top:1px solid var(--border); justify-content:flex-end; flex-wrap:wrap; flex-shrink:0; background:var(--white); border-radius:0 0 18px 18px; }
+@media (max-width:600px) {
+  .overlay { align-items:flex-end; padding:0; }
+  .modal { border-radius:20px 20px 0 0; max-width:100%; max-height:92vh; }
+  .modal-drag-bar { border-radius:20px 20px 0 0; cursor:default; }
+  .modal-close-x { display:none; }
+  .modal-drag-title { display:none; }
+  .modal-drag-dot { display:block; }
+}
 
 /* FORM */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -485,6 +501,25 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 
       <!-- ── ВИД: МІСЯЦЬ ── -->
       <div id="bview-month">
+        <!-- Загальний бюджет -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Загальний бюджет місяця</div>
+              <div class="card-sub">Встановіть ліміт і відстежуйте залишок</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)">
+                Ліміт:
+                <input id="budget-total-limit" type="number" placeholder="0"
+                  oninput="saveBudgetTotalLimit()"
+                  style="width:110px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:14px;font-weight:600;outline:none;color:var(--text)">
+                <span style="font-size:13px;color:var(--text-muted)" id="budget-currency-lbl">грн</span>
+              </div>
+            </div>
+          </div>
+          <div id="budget-total-summary"></div>
+        </div>
         <div class="grid-l" style="margin-bottom:16px;">
           <div><div class="budget-grid" id="budget-grid"></div></div>
           <div class="card" style="margin-bottom:0">
@@ -656,9 +691,33 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 </nav>
 
 <!-- MODALS -->
-<div class="overlay" id="emp-modal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="emp-modal-title">Новий співробітник</div><div class="form-grid"><div class="form-row full"><label>Повне ім'я *</label><input id="e-name" type="text" placeholder="Іванова Олена Петрівна"></div><div class="form-row"><label>Посада</label><input id="e-pos" type="text" placeholder="Менеджер"></div><div class="form-row"><label>Відділ</label><input id="e-dept" type="text"></div><div class="form-row"><label>Тип зайнятості</label><select id="e-type"><option value="salary">Окладник</option><option value="hourly">Погодинник</option><option value="shift">Змінник</option></select></div><div class="form-row"><label id="e-rate-lbl">Оклад (грн/міс)</label><input id="e-rate" type="number" placeholder="20000"></div><div class="form-row"><label>Дата прийому</label><div style="position:relative"><input id="e-hire-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('e-hire','e-hire-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;-webkit-appearance:none;width:100%"><input id="e-hire" type="hidden"></div></div><div class="form-row"><label>Статус</label><select id="e-status"><option value="active">Активний</option><option value="vacation">Відпустка</option><option value="inactive">Неактивний</option></select></div><div class="form-row full"><label>Примітка</label><textarea id="e-note" rows="2"></textarea></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('emp-modal')">Скасувати</button><button class="btn btn-primary" onclick="saveEmployee()">Зберегти</button></div></div></div>
+<div class="overlay" id="emp-modal"><div class="modal">
+  <div class="modal-drag-bar" id="emp-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="emp-modal-title">Новий співробітник</span>
+    <button class="modal-close-x" onclick="closeModal('emp-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid"><div class="form-row full"><label>Повне ім'я *</label><input id="e-name" type="text" placeholder="Іванова Олена Петрівна"></div><div class="form-row"><label>Посада</label><input id="e-pos" type="text" placeholder="Менеджер"></div><div class="form-row"><label>Відділ</label><input id="e-dept" type="text"></div><div class="form-row"><label>Тип зайнятості</label><select id="e-type"><option value="salary">Окладник</option><option value="hourly">Погодинник</option><option value="shift">Змінник</option></select></div><div class="form-row"><label>Статус</label><select id="e-status"><option value="active">Активний</option><option value="vacation">Відпустка</option><option value="inactive">Неактивний</option></select></div><div class="form-row"><label>Дата прийому</label><div style="position:relative"><input id="e-hire-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('e-hire','e-hire-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;-webkit-appearance:none;width:100%"><input id="e-hire" type="hidden"></div></div><div class="form-row full"><label>Примітка</label><textarea id="e-note" rows="2"></textarea></div></div>
+    <!-- Історія ставок -->
+    <div style="margin-top:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted)" id="e-rate-history-lbl">Ставки (грн/міс)</label>
+        <button class="btn btn-outline btn-sm" type="button" onclick="addRateEntry()">+ Додати зміну</button>
+      </div>
+      <div id="e-rate-history-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('emp-modal')">Скасувати</button><button class="btn btn-primary" onclick="saveEmployee()">Зберегти</button></div>
+</div></div>
 
-<div class="overlay" id="pay-modal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="pay-modal-title">Нарахування</div>
+<div class="overlay" id="pay-modal"><div class="modal">
+  <div class="modal-drag-bar" id="pay-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="pay-modal-title">Нарахування</span>
+    <button class="modal-close-x" onclick="closeModal('pay-modal')">×</button>
+  </div>
+  <div class="modal-body">
 
   <!-- Вкладки -->
   <div class="period-tabs" style="margin-bottom:16px;">
@@ -730,13 +789,22 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
     <div id="pm-stats-content"></div>
   </div>
 
+  </div><!-- /modal-body -->
   <div class="modal-footer">
     <button class="btn btn-ghost" onclick="closeModal('pay-modal')">Закрити</button>
     <button class="btn btn-primary" id="pm-save-btn" onclick="savePayEntry()">Зберегти</button>
   </div>
 </div></div>
 
-<div class="overlay" id="slip-modal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">Розрахунковий листок</div><div id="slip-content"></div><div class="modal-footer"><button class="btn btn-ghost" onclick="printSlip()">🖨 Друк</button><button class="btn btn-ghost" onclick="closeModal('slip-modal')">Закрити</button></div></div></div>
+<div class="overlay" id="slip-modal"><div class="modal">
+  <div class="modal-drag-bar" id="slip-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title">Розрахунковий листок</span>
+    <button class="modal-close-x" onclick="closeModal('slip-modal')">×</button>
+  </div>
+  <div class="modal-body"><div id="slip-content"></div></div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="printSlip()">🖨 Друк</button><button class="btn btn-ghost" onclick="closeModal('slip-modal')">Закрити</button></div>
+</div></div>
 
 <!-- CUSTOM CALENDAR -->
 <div class="cal-overlay" id="cal-overlay" onclick="if(event.target===this)closeCal()">
@@ -755,25 +823,31 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 </div>
 
 <!-- PAYMENT EDIT MODAL -->
-<div class="overlay" id="pay-edit-modal"><div class="modal"><div class="modal-handle"></div>
-  <div class="modal-title">Редагувати виплату</div>
-  <div class="form-grid">
-    <div class="form-row"><label>Сума (грн) *</label><input id="pe-amount" type="number"></div>
-    <div class="form-row"><label>Дата *</label>
-      <div style="position:relative">
-        <input id="pe-date-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('pe-date','pe-date-display')" style="cursor:pointer;background:var(--bg)">
-        <input id="pe-date" type="hidden">
+<div class="overlay" id="pay-edit-modal"><div class="modal">
+  <div class="modal-drag-bar" id="pay-edit-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title">Редагувати виплату</span>
+    <button class="modal-close-x" onclick="closeModal('pay-edit-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row"><label>Сума (грн) *</label><input id="pe-amount" type="number"></div>
+      <div class="form-row"><label>Дата *</label>
+        <div style="position:relative">
+          <input id="pe-date-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('pe-date','pe-date-display')" style="cursor:pointer;background:var(--bg)">
+          <input id="pe-date" type="hidden">
+        </div>
       </div>
+      <div class="form-row"><label>Метод</label>
+        <select id="pe-method">
+          <option value="card">💳 Банківська карта</option>
+          <option value="cash">💵 Готівка</option>
+          <option value="custom">✏️ Інший…</option>
+        </select>
+      </div>
+      <div class="form-row" id="pe-custom-wrap" style="display:none"><label>Назва методу</label><input id="pe-custom" type="text" placeholder="Наприклад: USDT"></div>
+      <div class="form-row full"><label>Примітка</label><input id="pe-note" type="text" placeholder="Необов'язково"></div>
     </div>
-    <div class="form-row"><label>Метод</label>
-      <select id="pe-method">
-        <option value="card">💳 Банківська карта</option>
-        <option value="cash">💵 Готівка</option>
-        <option value="custom">✏️ Інший…</option>
-      </select>
-    </div>
-    <div class="form-row" id="pe-custom-wrap" style="display:none"><label>Назва методу</label><input id="pe-custom" type="text" placeholder="Наприклад: USDT"></div>
-    <div class="form-row full"><label>Примітка</label><input id="pe-note" type="text" placeholder="Необов'язково"></div>
   </div>
   <div class="modal-footer">
     <button class="btn btn-ghost" onclick="closeModal('pay-edit-modal')">Скасувати</button>
@@ -781,8 +855,13 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   </div>
 </div></div>
 
-<div class="overlay" id="budget-modal"><div class="modal"><div class="modal-handle"></div>
-  <div class="modal-title" id="budget-modal-title">Нова категорія</div>
+<div class="overlay" id="budget-modal"><div class="modal">
+  <div class="modal-drag-bar" id="budget-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="budget-modal-title">Нова категорія</span>
+    <button class="modal-close-x" onclick="closeModal('budget-modal')">×</button>
+  </div>
+  <div class="modal-body">
   <div class="form-grid">
     <div class="form-row full"><label>Назва *</label><input id="bc-name" type="text" placeholder="Авто"></div>
     <div class="form-row"><label>Ліміт (грн/міс)</label><input id="bc-limit" type="number" placeholder="5000"></div>
@@ -798,13 +877,24 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Приймає: 🚗 або &lt;svg xmlns="http://www.w3.org/2000/svg"…&gt;…&lt;/svg&gt;</div>
     </div>
   </div>
+  </div><!-- /modal-body -->
   <div class="modal-footer">
     <button class="btn btn-ghost" onclick="closeModal('budget-modal')">Скасувати</button>
     <button class="btn btn-primary" onclick="saveBudgetCat()">Зберегти</button>
   </div>
 </div></div>
 
-<div class="overlay" id="income-modal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="income-modal-title">Нове надходження</div><div class="form-grid"><div class="form-row full"><label>Категорія</label><div style="display:flex;gap:8px;"><select id="ic-cat" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;outline:none;min-height:44px;-webkit-appearance:none;"></select><button class="btn btn-outline btn-sm" onclick="promptNewIncomeCat()">+ нова</button></div></div><div class="form-row"><label>Сума (грн)</label><input id="ic-amount" type="number" placeholder="0"></div><div class="form-row"><label>Дата</label><div style="position:relative"><input id="ic-date-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('ic-date','ic-date-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;-webkit-appearance:none;width:100%"><input id="ic-date" type="hidden"></div></div><div class="form-row full"><label>Опис</label><input id="ic-desc" type="text" placeholder="Необов'язково"></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('income-modal')">Скасувати</button><button class="btn btn-primary" onclick="saveIncome()">Зберегти</button></div></div></div>
+<div class="overlay" id="income-modal"><div class="modal">
+  <div class="modal-drag-bar" id="income-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="income-modal-title">Нове надходження</span>
+    <button class="modal-close-x" onclick="closeModal('income-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid"><div class="form-row full"><label>Категорія</label><div style="display:flex;gap:8px;"><select id="ic-cat" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;outline:none;min-height:44px;-webkit-appearance:none;"></select><button class="btn btn-outline btn-sm" onclick="promptNewIncomeCat()">+ нова</button></div></div><div class="form-row"><label>Сума (грн)</label><input id="ic-amount" type="number" placeholder="0"></div><div class="form-row"><label>Дата</label><div style="position:relative"><input id="ic-date-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('ic-date','ic-date-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;-webkit-appearance:none;width:100%"><input id="ic-date" type="hidden"></div></div><div class="form-row full"><label>Опис</label><input id="ic-desc" type="text" placeholder="Необов'язково"></div></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('income-modal')">Скасувати</button><button class="btn btn-primary" onclick="saveIncome()">Зберегти</button></div>
+</div></div>
 
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -825,7 +915,7 @@ const auth = firebase.auth();
 const DOCREF = db_fs.collection('kpay').doc('main');
 
 // ── STATE ──
-let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176} };
+let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{} };
 let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#7c6ef7', saveTimer=null, isOnline=true;
 const COLORS=['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4','#8b5cf6','#14b8a6'];
@@ -851,7 +941,9 @@ async function loadFromFirebase() {
   try {
     const snap = await DOCREF.get();
     if (snap.exists && snap.data().db) {
-      db = { ...db, ...snap.data().db };
+      const loaded = snap.data().db;
+      db = { ...db, ...loaded };
+      if (!db.budgetLimits) db.budgetLimits = {};
     } else {
       seedDemoData();
       await saveToFirebase();
@@ -870,6 +962,7 @@ async function loadFromFirebase() {
   const todayIso = new Date().toISOString().slice(0,10);
   document.getElementById('exp-date').value = todayIso;
   document.getElementById('exp-date-display').value = new Date().toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'});
+  setTimeout(initModalDrag, 200);
 }
 
 async function saveToFirebase() {
@@ -907,10 +1000,21 @@ function thisMonth() { const d=new Date(); return `${d.getFullYear()}-${String(d
 const MN=['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 function monthName(m) { return MN[parseInt(m.split('-')[1])-1]; }
 function monthShort(m) { return monthName(m).slice(0,3); }
-function calcGross(emp, h) {
-  if (emp.type==='hourly') return (emp.rate||0)*(h||0);
-  if (emp.type==='shift')  return (emp.rate||0)*(h||0); // h = кількість змін
-  return emp.rate||0; // salary
+// Повертає ставку співробітника для конкретного місяця (враховує історію ставок)
+function getRateForMonth(emp, month) {
+  const history = emp.rateHistory;
+  if (!history || !history.length) return emp.rate||0;
+  // Сортуємо від найновішої до найстарішої
+  const sorted = [...history].sort((a,b)=>b.from.localeCompare(a.from));
+  const found = sorted.find(r=>r.from<=month);
+  return found ? found.rate : (sorted[sorted.length-1]?.rate||emp.rate||0);
+}
+
+function calcGross(emp, h, month) {
+  const rate = month ? getRateForMonth(emp, month) : (emp.rate||0);
+  if (emp.type==='hourly') return rate*(h||0);
+  if (emp.type==='shift')  return rate*(h||0);
+  return rate;
 }
 function calcTaxes(base, bonus=0, applyPdfo=true, applyEsv=true) {
   const s=db.settings, total=base+bonus;
@@ -998,22 +1102,66 @@ window.openEmpModal = function(id) {
   document.getElementById('e-pos').value=emp?.position||'';
   document.getElementById('e-dept').value=emp?.dept||'';
   document.getElementById('e-type').value=emp?.type||'salary';
-  document.getElementById('e-rate').value=emp?.rate||'';
+  document.getElementById('e-status').value=emp?.status||'active';
   document.getElementById('e-hire').value=emp?.hire||'';
   const hireDisplay=document.getElementById('e-hire-display');
   if(hireDisplay) hireDisplay.value=emp?.hire?new Date(emp.hire+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'}):'';
-  document.getElementById('e-status').value=emp?.status||'active';
   document.getElementById('e-note').value=emp?.note||'';
-  updateRateLabel(); document.getElementById('emp-modal').classList.add('open');
+  updateRateLabel();
+  // Ініціалізуємо історію ставок
+  const history = emp?.rateHistory?.length ? emp.rateHistory : [{from: thisMonth(), rate: emp?.rate||0}];
+  window._rateHistory = history.map(r=>({...r}));
+  renderRateHistory();
+  document.getElementById('emp-modal').classList.add('open');
 };
 function updateRateLabel() {
   const t=document.getElementById('e-type').value;
-  document.getElementById('e-rate-lbl').textContent = t==='hourly'?'Ставка (грн/год)': t==='shift'?'Ставка за зміну (грн)':'Оклад (грн/міс)';
+  const lbl=document.getElementById('e-rate-history-lbl');
+  if(lbl) lbl.textContent=t==='hourly'?'Ставки (грн/год)':t==='shift'?'Ставки (грн/зміну)':'Ставки (грн/міс)';
 }
 document.getElementById('e-type').addEventListener('change',updateRateLabel);
+
+function renderRateHistory() {
+  const list=document.getElementById('e-rate-history-list');
+  const sorted=[...(window._rateHistory||[])].sort((a,b)=>a.from.localeCompare(b.from));
+  list.innerHTML=sorted.map((r,i)=>`
+    <div style="display:flex;gap:8px;align-items:center;background:var(--bg);border-radius:9px;padding:8px 12px;">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:2px">
+          ${i===0?'З початку':'З '+CAL_MONTHS[parseInt(r.from.split('-')[1])-1]+' '+r.from.split('-')[0]}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="month" value="${r.from}" onchange="window._rateHistory[${window._rateHistory.indexOf(r)}].from=this.value;renderRateHistory()" style="background:transparent;border:none;outline:none;font-family:inherit;font-size:13px;color:var(--text-muted);max-width:130px;-webkit-appearance:none" ${i===0?'disabled':''}>
+          <input type="number" value="${r.rate}" placeholder="0" oninput="window._rateHistory[${window._rateHistory.indexOf(r)}].rate=parseFloat(this.value)||0" style="flex:1;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:14px;font-weight:600;outline:none;min-width:80px">
+        </div>
+      </div>
+      ${sorted.length>1?`<button class="btn btn-danger btn-sm" onclick="deleteRateEntry(${window._rateHistory.indexOf(r)})">✕</button>`:''}
+    </div>`).join('');
+}
+
+window.addRateEntry = function() {
+  window._rateHistory.push({from:thisMonth(), rate:0});
+  renderRateHistory();
+};
+window.deleteRateEntry = function(idx) {
+  window._rateHistory.splice(idx,1);
+  renderRateHistory();
+};
 window.saveEmployee = function() {
   const name=document.getElementById('e-name').value.trim(); if(!name) return alert('Введіть ім\'я');
-  const emp={id:editEmpId||uid(),name,position:document.getElementById('e-pos').value.trim(),dept:document.getElementById('e-dept').value.trim(),type:document.getElementById('e-type').value,rate:parseFloat(document.getElementById('e-rate').value)||0,hire:document.getElementById('e-hire').value,status:document.getElementById('e-status').value,note:document.getElementById('e-note').value.trim()};
+  const rateHistory=(window._rateHistory||[]).filter(r=>r.rate>0||window._rateHistory.length===1);
+  const latestRate=rateHistory.length?[...rateHistory].sort((a,b)=>b.from.localeCompare(a.from))[0].rate:0;
+  const emp={
+    id:editEmpId||uid(),name,
+    position:document.getElementById('e-pos').value.trim(),
+    dept:document.getElementById('e-dept').value.trim(),
+    type:document.getElementById('e-type').value,
+    rate:latestRate, // поточна ставка (для зворотної сумісності)
+    rateHistory,
+    hire:document.getElementById('e-hire').value,
+    status:document.getElementById('e-status').value,
+    note:document.getElementById('e-note').value.trim()
+  };
   if(editEmpId){const i=db.employees.findIndex(e=>e.id===editEmpId);if(i!==-1)db.employees[i]=emp;}else db.employees.push(emp);
   save(); closeModal('emp-modal'); renderEmployees();
 };
@@ -1039,7 +1187,7 @@ function renderPayroll() {
   if(!emps.length){ tb.innerHTML=`<tr><td colspan="7"><div class="empty">Немає активних співробітників</div></td></tr>`; pbWrap.innerHTML=''; return; }
   const empData=emps.map(emp=>{
     const entry=db.payroll.find(p=>p.empId===emp.id&&p.month===month);
-    const hours=entry?.hours??db.settings.hours, bonus=entry?.bonus||0, base=calcGross(emp,hours);
+    const hours=entry?.hours??db.settings.hours, bonus=entry?.bonus||0, base=calcGross(emp,hours,month);
     const applyPdfo=entry?.applyPdfo!==false, applyEsv=entry?.applyEsv!==false;
     const {gross,tax,esv,net}=calcTaxes(base,bonus,applyPdfo,applyEsv);
     const fn=Math.max(0,net-(entry?.deductions||0));
@@ -1165,7 +1313,7 @@ function getModalCalc(){
   const deductions=parseFloat(document.getElementById('pm-deductions').value)||0;
   const applyPdfo=document.getElementById('pm-apply-pdfo').checked;
   const applyEsv=document.getElementById('pm-apply-esv').checked;
-  const base=calcGross(emp,hours);
+  const base=calcGross(emp,hours,currentPayMonth);
   const {gross,tax,esv,net}=calcTaxes(base,bonus,applyPdfo,applyEsv);
   const fn=Math.max(0,net-deductions);
   return {emp,hours,bonus,deductions,applyPdfo,applyEsv,gross,tax,esv,net,fn};
@@ -1379,7 +1527,7 @@ window.showSlip=function(empId,month){
   const emp=db.employees.find(e=>e.id===empId), s=db.settings, entry=db.payroll.find(p=>p.empId===empId&&p.month===month);
   const hours=entry?.hours||s.hours, bonus=entry?.bonus||0, deductions=entry?.deductions||0;
   const applyPdfo=entry?.applyPdfo!==false, applyEsv=entry?.applyEsv!==false;
-  const base=calcGross(emp,hours);
+  const base=calcGross(emp,hours,currentPayMonth);
   const {gross,tax,esv,net}=calcTaxes(base,bonus,applyPdfo,applyEsv);
   const fn=Math.max(0,net-deductions);
   const payments=entry?.payments||[];
@@ -1491,8 +1639,34 @@ function getBudgetMonth() {
 function renderBudget() {
   const month = getBudgetMonth();
   document.getElementById('budget-sub').textContent = monthName(month) + ' ' + month.split('-')[0];
-  // Витрати тільки цього місяця
+  document.getElementById('budget-currency-lbl').textContent = db.settings.currency||'грн';
+
+  // Загальний бюджет місяця
+  const totalLimit = (db.budgetLimits||{})[month] || 0;
+  document.getElementById('budget-total-limit').value = totalLimit||'';
   const monthExp = db.expenses.filter(e => e.date && e.date.startsWith(month));
+  const totalSpent = monthExp.reduce((s,e)=>s+(e.amount||0),0);
+  const totalRemaining = Math.max(0, totalLimit - totalSpent);
+  const totalPct = totalLimit>0 ? Math.min(100,Math.round((totalSpent/totalLimit)*100)) : 0;
+  const totalOver = totalLimit>0 && totalSpent>totalLimit;
+
+  document.getElementById('budget-total-summary').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:${totalLimit?'12px':'0'}">
+      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Витрачено</div>
+        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':'var(--text)'};margin-top:3px">${fmt(totalSpent)}</div></div>
+      ${totalLimit?`
+      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Залишок</div>
+        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':totalRemaining===0?'var(--text-muted)':'var(--green)'};margin-top:3px">${totalOver?'−'+fmt(totalSpent-totalLimit):fmt(totalRemaining)}</div></div>
+      <div style="width:100%">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px">
+          <span>${totalPct}% використано</span><span>Ліміт: ${fmt(totalLimit)}</span>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:20px;overflow:hidden">
+          <div style="height:100%;border-radius:20px;background:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--accent)'};width:${totalPct}%;transition:width .6s"></div>
+        </div>
+      </div>`:''}
+    </div>`;
+
   const grid = document.getElementById('budget-grid');
   grid.innerHTML = db.budgetCats.length ? db.budgetCats.map(cat => {
     const spent = monthExp.filter(e=>e.catId===cat.id).reduce((s,e)=>s+(e.amount||0),0);
@@ -1524,23 +1698,38 @@ function renderBudget() {
   if (budgetTab==='stats') renderBudgetStats();
 }
 
+window.saveBudgetTotalLimit = function() {
+  const month = getBudgetMonth();
+  const val = parseFloat(document.getElementById('budget-total-limit').value)||0;
+  if(!db.budgetLimits) db.budgetLimits={};
+  db.budgetLimits[month] = val;
+  save();
+  renderBudget();
+};
+
 function renderBudgetStats() {
-  // Загальний графік за 12 місяців
   const now = new Date(), months12 = [];
   for (let i=11;i>=0;i--) {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     const total = db.expenses.filter(e=>e.date?.startsWith(key)).reduce((s,e)=>s+(e.amount||0),0);
-    months12.push({key, label:monthShort(key), total});
+    const limit = (db.budgetLimits||{})[key]||0;
+    months12.push({key, label:monthShort(key), total, limit});
   }
-  const mx = Math.max(...months12.map(m=>m.total), 1);
-  document.getElementById('budget-chart-total').innerHTML = months12.map(m=>`
-    <div class="cbar-wrap">
-      <div style="width:100%;display:flex;flex-direction:column;align-items:center;height:100px;justify-content:flex-end">
-        <div class="cbar" data-tip="${m.label}: ${fmt(m.total)}" style="height:${Math.round((m.total/mx)*92)}px;width:100%;background:linear-gradient(180deg,#a78bfa,#7c6ef7)"></div>
+  // Графік: витрати vs ліміт
+  const mx = Math.max(...months12.map(m=>Math.max(m.total,m.limit)), 1);
+  document.getElementById('budget-chart-total').innerHTML = months12.map(m=>{
+    const hasLimit = m.limit>0;
+    const over = hasLimit && m.total>m.limit;
+    const barColor = over?'var(--red)':'linear-gradient(180deg,#a78bfa,#7c6ef7)';
+    return `<div class="cbar-wrap">
+      <div style="width:100%;display:flex;flex-direction:column;align-items:center;height:100px;justify-content:flex-end;position:relative">
+        ${hasLimit?`<div style="position:absolute;bottom:${Math.round((m.limit/mx)*92)}px;left:0;right:0;border-top:1.5px dashed var(--orange);opacity:.6"></div>`:''}
+        <div class="cbar" data-tip="${m.label}: ${fmt(m.total)}${hasLimit?' / ліміт '+fmt(m.limit):''}" style="height:${Math.round((m.total/mx)*92)}px;width:100%;background:${barColor}"></div>
       </div>
       <div class="cbar-label">${m.label}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // Фільтр по категоріях
   const catSel = document.getElementById('budget-cat-filter');
@@ -2054,9 +2243,56 @@ window.togglePayStatus = function(id) {
   save(); renderPayroll(); renderHistory(); updatePendingBadge();
 };
 
-// ── MODAL ──
+// ── MODAL DRAG ──
 window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+
+// Drag — ініціалізуємо після завантаження
+function initModalDrag() {
+  document.querySelectorAll('.modal-drag-bar').forEach(bar=>{
+    const modal = bar.closest('.modal');
+    if(!modal) return;
+    let startX,startY,startLeft,startTop,dragging=false;
+    bar.addEventListener('mousedown',e=>{
+      if(e.target.classList.contains('modal-close-x')) return;
+      dragging=true;
+      const rect=modal.getBoundingClientRect();
+      // Switch to absolute positioning for drag
+      modal.style.position='fixed';
+      modal.style.left=rect.left+'px';
+      modal.style.top=rect.top+'px';
+      modal.style.margin='0';
+      modal.style.transform='none';
+      startX=e.clientX; startY=e.clientY;
+      startLeft=rect.left; startTop=rect.top;
+      bar.style.cursor='grabbing';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove',e=>{
+      if(!dragging) return;
+      const dx=e.clientX-startX, dy=e.clientY-startY;
+      const newLeft=Math.max(0,Math.min(window.innerWidth-modal.offsetWidth, startLeft+dx));
+      const newTop=Math.max(0,Math.min(window.innerHeight-modal.offsetHeight, startTop+dy));
+      modal.style.left=newLeft+'px';
+      modal.style.top=newTop+'px';
+    });
+    document.addEventListener('mouseup',()=>{
+      dragging=false;
+      bar.style.cursor='grab';
+    });
+  });
+}
+
+// Reset modal position when closed
+const _origClose = window.closeModal;
+window.closeModal = function(id) {
+  const m = document.getElementById(id);
+  if(m) {
+    m.classList.remove('open');
+    const modal = m.querySelector('.modal');
+    if(modal) { modal.style.position=''; modal.style.left=''; modal.style.top=''; modal.style.margin=''; }
+  }
+};
 
 // ── DEMO DATA ──
 function seedDemoData() {
