@@ -1052,7 +1052,7 @@ function renderDashboard() {
   const m=thisMonth();
   document.getElementById('sb-period-label').textContent=monthName(m)+' '+m.split('-')[0];
   document.getElementById('dash-updated').textContent='Оновлено: '+new Date().toLocaleDateString('uk-UA');
-  const active=db.employees.filter(e=>e.status==='active').length;
+  const active=db.employees.filter(e=>e.status==='active'&&(!e.hire||e.hire.slice(0,7)<=m)).length;
   const me=db.payroll.filter(p=>p.month===m);
   const tg=me.reduce((s,p)=>s+(p.gross||0),0), tn=me.reduce((s,p)=>s+(p.net||0),0);
   const paid=me.filter(p=>p.status==='paid').length;
@@ -1181,7 +1181,13 @@ function getEntryStatus(entry, fn) {
 
 function renderPayroll() {
   const month=document.getElementById('pay-month').value; currentPayMonth=month;
-  const emps=db.employees.filter(e=>e.status!=='inactive');
+  // Фільтруємо: тільки активні І прийняті до/в цьому місяці
+  const emps=db.employees.filter(e=>{
+    if(e.status==='inactive') return false;
+    if(!e.hire) return true;
+    const hireMonth=e.hire.slice(0,7); // YYYY-MM
+    return hireMonth<=month;
+  });
   const tb=document.getElementById('pay-tbody');
   const pbWrap=document.getElementById('payroll-progress-bars');
   if(!emps.length){ tb.innerHTML=`<tr><td colspan="7"><div class="empty">Немає активних співробітників</div></td></tr>`; pbWrap.innerHTML=''; return; }
@@ -1245,7 +1251,11 @@ function renderPayroll() {
 
 window.calcAll = function() {
   const month=currentPayMonth||thisMonth();
-  db.employees.filter(e=>e.status!=='inactive').forEach(emp=>{ if(!db.payroll.find(p=>p.empId===emp.id&&p.month===month)){
+  db.employees.filter(e=>{
+    if(e.status==='inactive') return false;
+    if(!e.hire) return true;
+    return e.hire.slice(0,7)<=month;
+  }).forEach(emp=>{ if(!db.payroll.find(p=>p.empId===emp.id&&p.month===month)){
     const defH=emp.type==='shift'?0:db.settings.hours;
     const base=calcGross(emp,defH); const{gross,tax,esv,net}=calcTaxes(base);
     db.payroll.push({id:uid(),empId:emp.id,month,gross,tax,esv,net,hours:defH,bonus:0,deductions:0,note:'',applyPdfo:true,applyEsv:true,payments:[]});
@@ -1852,9 +1862,15 @@ function renderPayModalStats() {
   const now = new Date();
   // Беремо 12 місяців
   const months = [];
+  const hireMonth = emp?.hire ? emp.hire.slice(0,7) : null;
   for(let i=11;i>=0;i--) {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    // Пропускаємо місяці до дати прийому
+    if(hireMonth && key < hireMonth) {
+      months.push({key, label:monthShort(key)+' '+key.split('-')[0], fn:0, paid:0, entry:null, gross:0, beforeHire:true});
+      continue;
+    }
     const entry = db.payroll.find(p=>p.empId===empId&&p.month===key);
     const fn = entry ? Math.max(0,(entry.net||0)-(entry.deductions||0)) : 0;
     const paid = (entry?.payments||[]).reduce((s,p)=>s+(p.amount||0),0);
@@ -2020,6 +2036,8 @@ function renderAnalytics() {
   const empMonthData = {}; // empId -> [{month, gross, net, paid, tax}]
   activeEmps.forEach(emp=>{
     empMonthData[emp.id] = months.map(m=>{
+      // Не показуємо дані за місяці до дати прийому
+      if(emp.hire && emp.hire.slice(0,7)>m) return {month:m,label:monthShort(m),gross:0,net:0,paid:0,tax:0};
       const entry = db.payroll.find(p=>p.empId===emp.id&&p.month===m);
       const fn = entry ? Math.max(0,(entry.net||0)-(entry.deductions||0)) : 0;
       const paid = (entry?.payments||[]).reduce((s,p)=>s+(p.amount||0),0);
