@@ -2369,7 +2369,6 @@ window.openReceiptScanner = function() {
   const key = localStorage.getItem('kpay_anthropic_key');
   if (!key) { showToast('err', '⚠ Спочатку вкажіть API ключ у Налаштуваннях'); goto('settings'); return; }
   clearReceipt();
-  document.getElementById('rc-cat').innerHTML = db.budgetCats.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
   document.getElementById('receipt-modal').classList.add('open');
 };
 
