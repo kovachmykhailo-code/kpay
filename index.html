@@ -341,12 +341,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   .btn-main .lbl { display: none; }
 }
 
-/* ── PRINT / PDF REPORT ── */
-@media print {
-  body * { visibility: hidden; }
-  #kpay-print-report, #kpay-print-report * { visibility: visible; }
-  #kpay-print-report { position: fixed; inset: 0; background: #fff; z-index: 9999; padding: 28px 36px; overflow: visible; }
-}
+
 </style>
 </head>
 <body>
@@ -2011,21 +2006,40 @@ window.generateBudgetPDF = function() {
     <span>${new Date().toLocaleDateString('uk-UA')}</span>
   </div>`;
 
-  // Create print container
-  let printEl = document.getElementById('kpay-print-report');
-  if (!printEl) {
-    printEl = document.createElement('div');
-    printEl.id = 'kpay-print-report';
-    document.body.appendChild(printEl);
+  // Open in new window and print
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Звіт по бюджету · K-Pay</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 13px; color: #1a1b2e; line-height: 1.55; background: #fff; padding: 32px 40px; }
+  table { border-collapse: collapse; width: 100%; }
+  @media print {
+    body { padding: 16px 24px; }
+    @page { margin: 12mm 14mm; size: A4; }
   }
-  printEl.style.cssText = 'display:block;font-family:Plus Jakarta Sans,sans-serif;font-size:13px;color:#1a1b2e;line-height:1.5;';
-  printEl.innerHTML = html;
-
+  .no-print { display: flex; gap: 10px; margin-bottom: 24px; }
+  @media print { .no-print { display: none; } }
+  .btn { padding: 9px 18px; border-radius: 8px; border: none; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #7c6ef7; color: #fff; }
+  .btn-ghost { background: #f4f5f9; color: #1a1b2e; border: 1px solid #e8e9ef; }
+</style>
+</head>
+<body>
+<div class="no-print">
+  <button class="btn btn-primary" onclick="window.print()">🖨 Друк / Зберегти PDF</button>
+  <button class="btn btn-ghost" onclick="window.close()">✕ Закрити</button>
+</div>
+${html}
+</body>
+</html>`);
+  w.document.close();
   closeModal('budget-report-modal');
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => { printEl.innerHTML = ''; }, 1000);
-  }, 150);
 };
 
 function initBudget() {
