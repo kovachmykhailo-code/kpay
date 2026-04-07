@@ -340,6 +340,13 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   .topbar-title { font-size: 16px; }
   .btn-main .lbl { display: none; }
 }
+
+/* ── PRINT / PDF REPORT ── */
+@media print {
+  body * { visibility: hidden; }
+  #kpay-print-report, #kpay-print-report * { visibility: visible; }
+  #kpay-print-report { position: fixed; inset: 0; background: #fff; z-index: 9999; padding: 28px 36px; overflow: visible; }
+}
 </style>
 </head>
 <body>
@@ -489,6 +496,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
         <div><div class="section-title">Бюджет</div><div class="section-sub" id="budget-sub"></div></div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <input type="month" id="budget-month" onchange="renderBudget()" style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;">
+          <button class="btn btn-ghost" onclick="openBudgetReportModal()" style="display:flex;align-items:center;gap:6px;"><i class="ph-light ph-file-pdf" style="font-size:16px"></i> Звіт PDF</button>
           <button class="btn btn-outline" onclick="openReceiptScanner()" style="display:flex;align-items:center;gap:6px;"><i class="ph-light ph-receipt" style="font-size:16px"></i> Сканувати чек</button>
           <button class="btn btn-primary" onclick="openBudgetModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Категорія</button>
         </div>
@@ -713,6 +721,8 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="btn btn-ghost btn-sm" onclick="clearOrphanPayroll()" title="Видалити нарахування видалених співробітників">Прибрати зайві нарахування</button>
               <button class="btn btn-ghost btn-sm" onclick="if(confirm('Видалити всю історію нарахувань?'))clearPayrollOnly()">Очистити нарахування</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearIncomeData()">Очистити надходження</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearBudgetData()">Очистити бюджет/витрати</button>
               <button class="btn btn-danger btn-sm" onclick="if(confirm('Видалити абсолютно всі дані?'))clearData()">🗑 Скинути все</button>
             </div>
           </div>
@@ -974,6 +984,45 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   </div>
   <div class="modal-footer">
     <button class="btn btn-ghost" onclick="closeModal('income-cat-modal')">Закрити</button>
+  </div>
+</div></div>
+
+<!-- BUDGET PDF REPORT MODAL -->
+<div class="overlay" id="budget-report-modal"><div class="modal" style="max-width:460px;">
+  <div class="modal-drag-bar" id="budget-report-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title">📄 Звіт по бюджету</span>
+    <button class="modal-close-x" onclick="closeModal('budget-report-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Період — від</label>
+        <input type="month" id="rep-from" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;outline:none;min-height:44px;width:100%">
+      </div>
+      <div class="form-row">
+        <label>Період — до</label>
+        <input type="month" id="rep-to" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;outline:none;min-height:44px;width:100%">
+      </div>
+      <div class="form-row full">
+        <label>Назва організації / заголовок (необов'язково)</label>
+        <input type="text" id="rep-title" placeholder="Наприклад: ФОП Іваненко" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;outline:none;min-height:44px;width:100%">
+      </div>
+      <div class="form-row full">
+        <label style="margin-bottom:8px">Включити до звіту</label>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer"><input type="checkbox" id="rep-inc-summary" checked style="width:16px;height:16px;accent-color:var(--accent)"> Загальний підсумок</label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer"><input type="checkbox" id="rep-inc-cats" checked style="width:16px;height:16px;accent-color:var(--accent)"> По категоріях</label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer"><input type="checkbox" id="rep-inc-monthly" checked style="width:16px;height:16px;accent-color:var(--accent)"> Місячна розбивка</label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer"><input type="checkbox" id="rep-inc-txlist" style="width:16px;height:16px;accent-color:var(--accent)"> Список всіх транзакцій</label>
+        </div>
+      </div>
+    </div>
+    <div id="rep-preview-info" style="margin-top:14px;padding:10px 14px;background:var(--accent-light);border-radius:10px;font-size:12px;color:var(--accent);display:none;"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('budget-report-modal')">Скасувати</button>
+    <button class="btn btn-primary" onclick="generateBudgetPDF()"><i class="ph-light ph-printer" style="font-size:15px"></i> Друк / Зберегти PDF</button>
   </div>
 </div></div>
 
@@ -1751,6 +1800,234 @@ window.saveBudgetCat = function() {
   save(); closeModal('budget-modal'); renderBudget();
 };
 window.deleteBudgetCat = function(id) { if(!confirm('Видалити?'))return; db.budgetCats=db.budgetCats.filter(c=>c.id!==id); db.expenses=db.expenses.filter(e=>e.catId!==id); save(); renderBudget(); };
+window.deleteBudgetCat = function(id) { if(!confirm('Видалити?'))return; db.budgetCats=db.budgetCats.filter(c=>c.id!==id); db.expenses=db.expenses.filter(e=>e.catId!==id); save(); renderBudget(); };
+
+// ── BUDGET PDF REPORT ──
+window.openBudgetReportModal = function() {
+  // Defaults: from 3 months ago to current month
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth()-2, 1);
+  document.getElementById('rep-from').value = `${from.getFullYear()}-${String(from.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('rep-to').value   = thisMonth();
+  document.getElementById('rep-title').value = '';
+  document.getElementById('budget-report-modal').classList.add('open');
+  updateRepPreview();
+};
+
+function updateRepPreview() {
+  const from = document.getElementById('rep-from').value;
+  const to   = document.getElementById('rep-to').value;
+  if (!from || !to) return;
+  // Count months and transactions
+  const months = [];
+  let cur = new Date(from+'-01');
+  const end = new Date(to+'-01');
+  while (cur <= end) {
+    months.push(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`);
+    cur.setMonth(cur.getMonth()+1);
+  }
+  const txCount = db.expenses.filter(e=>months.some(m=>e.date?.startsWith(m))).length;
+  const total   = db.expenses.filter(e=>months.some(m=>e.date?.startsWith(m))).reduce((s,e)=>s+(e.amount||0),0);
+  const info = document.getElementById('rep-preview-info');
+  info.style.display='block';
+  info.textContent = `Буде включено: ${months.length} міс. · ${txCount} транзакцій · загальна сума ${fmt(total)}`;
+}
+document.getElementById('rep-from').addEventListener('change', updateRepPreview);
+document.getElementById('rep-to').addEventListener('change', updateRepPreview);
+
+window.generateBudgetPDF = function() {
+  const from  = document.getElementById('rep-from').value;
+  const to    = document.getElementById('rep-to').value;
+  if (!from || !to || from > to) return alert('Оберіть коректний діапазон дат');
+  const orgTitle  = document.getElementById('rep-title').value.trim();
+  const incSummary = document.getElementById('rep-inc-summary').checked;
+  const incCats    = document.getElementById('rep-inc-cats').checked;
+  const incMonthly = document.getElementById('rep-inc-monthly').checked;
+  const incTxList  = document.getElementById('rep-inc-txlist').checked;
+  const cur = db.settings.currency || 'грн';
+
+  // Build months array
+  const months = [];
+  let d = new Date(from+'-01');
+  const endD = new Date(to+'-01');
+  while (d <= endD) {
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    d.setMonth(d.getMonth()+1);
+  }
+
+  const allExp   = db.expenses.filter(e => months.some(m => e.date?.startsWith(m)));
+  const totalExp = allExp.reduce((s,e)=>s+(e.amount||0), 0);
+  const totalLim = months.reduce((s,m)=>{
+    const cats = db.budgetCats.filter(c=>c.limit>0);
+    return s + cats.reduce((cs,c)=>cs+(c.limit||0), 0);
+  }, 0) / (months.length || 1) * months.length;
+
+  const periodLabel = months.length === 1
+    ? monthName(months[0])+' '+months[0].split('-')[0]
+    : monthName(months[0])+' '+months[0].split('-')[0]+' — '+monthName(months[months.length-1])+' '+months[months.length-1].split('-')[0];
+
+  // ── BUILD HTML ──
+  const ACCENT = '#7c6ef7';
+
+  // Header
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid ${ACCENT}">
+      <div>
+        ${orgTitle ? `<div style="font-size:13px;color:#666;margin-bottom:4px;font-weight:500">${orgTitle}</div>` : ''}
+        <div style="font-size:26px;font-weight:800;color:#1a1b2e;letter-spacing:-.02em">Звіт по бюджету</div>
+        <div style="font-size:14px;color:#666;margin-top:4px">${periodLabel}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Сформовано</div>
+        <div style="font-size:13px;color:#444;margin-top:2px">${new Date().toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'})}</div>
+        <div style="margin-top:8px;background:${ACCENT};color:#fff;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;display:inline-block">K-Pay</div>
+      </div>
+    </div>`;
+
+  // Summary block
+  if (incSummary) {
+    const over = totalLim > 0 && totalExp > totalLim;
+    const pct  = totalLim > 0 ? Math.min(100, Math.round((totalExp/totalLim)*100)) : null;
+    html += `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+        <div style="background:#f4f5f9;border-radius:12px;padding:16px;">
+          <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Загальні витрати</div>
+          <div style="font-size:22px;font-weight:300;color:${over?'#ef4444':'#1a1b2e'}">${fmt(totalExp)}</div>
+        </div>
+        <div style="background:#f4f5f9;border-radius:12px;padding:16px;">
+          <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Загальний ліміт</div>
+          <div style="font-size:22px;font-weight:300;color:#1a1b2e">${totalLim>0?fmt(totalLim):'—'}</div>
+        </div>
+        <div style="background:${over?'#fee2e2':'#dcfce7'};border-radius:12px;padding:16px;">
+          <div style="font-size:10px;font-weight:700;color:${over?'#ef4444':'#22c55e'};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${over?'Перевитрата':'Залишок'}</div>
+          <div style="font-size:22px;font-weight:300;color:${over?'#ef4444':'#22c55e'}">${totalLim>0?(over?'−'+fmt(totalExp-totalLim):fmt(totalLim-totalExp)):'—'}</div>
+        </div>
+      </div>
+      ${pct!==null?`<div style="margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:6px"><span>Використано бюджету</span><span style="font-weight:700;color:${over?'#ef4444':ACCENT}">${pct}%</span></div>
+        <div style="height:8px;background:#e8e9ef;border-radius:20px;overflow:hidden">
+          <div style="height:100%;border-radius:20px;background:${over?'#ef4444':pct>80?'#f97316':ACCENT};width:${pct}%"></div>
+        </div>
+      </div>`:''}`;
+  }
+
+  // By categories
+  if (incCats && db.budgetCats.length) {
+    html += `<div style="margin-bottom:24px;">
+      <div style="font-size:14px;font-weight:700;color:#1a1b2e;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e8e9ef">По категоріях</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:#f4f5f9;">
+          <th style="padding:8px 12px;text-align:left;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px;border-radius:6px 0 0 6px">Категорія</th>
+          <th style="padding:8px 12px;text-align:right;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px">Витрачено</th>
+          <th style="padding:8px 12px;text-align:right;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px">Ліміт/міс</th>
+          <th style="padding:8px 12px;text-align:right;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px">% ліміту</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px;border-radius:0 6px 6px 0">Прогрес</th>
+        </tr></thead>
+        <tbody>`;
+    db.budgetCats.forEach(cat => {
+      const spent = allExp.filter(e=>e.catId===cat.id).reduce((s,e)=>s+(e.amount||0),0);
+      const totalCatLim = (cat.limit||0) * months.length;
+      const pct = totalCatLim>0 ? Math.min(100,Math.round((spent/totalCatLim)*100)) : null;
+      const over = totalCatLim>0 && spent>totalCatLim;
+      const color = cat.color||ACCENT;
+      html += `<tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:10px 12px;font-weight:600;color:#1a1b2e">${cat.icon||''} ${cat.name}</td>
+        <td style="padding:10px 12px;text-align:right;font-weight:700;color:${over?'#ef4444':color}">${fmt(spent)}</td>
+        <td style="padding:10px 12px;text-align:right;color:#888">${cat.limit?fmt(cat.limit)+'/міс':'—'}</td>
+        <td style="padding:10px 12px;text-align:right;color:${over?'#ef4444':'#1a1b2e'};font-weight:600">${pct!==null?pct+'%':'—'}</td>
+        <td style="padding:10px 12px;">
+          ${pct!==null?`<div style="height:5px;background:#e8e9ef;border-radius:20px;overflow:hidden;min-width:60px"><div style="height:100%;border-radius:20px;background:${over?'#ef4444':color};width:${pct}%"></div></div>`:'—'}
+        </td>
+      </tr>`;
+    });
+    html += `<tr style="background:#f4f5f9;font-weight:700;">
+      <td style="padding:10px 12px;border-radius:6px 0 0 6px">Разом</td>
+      <td style="padding:10px 12px;text-align:right;color:${ACCENT}">${fmt(totalExp)}</td>
+      <td colspan="3" style="padding:10px 12px;border-radius:0 6px 6px 0"></td>
+    </tr>
+    </tbody></table></div>`;
+  }
+
+  // Monthly breakdown
+  if (incMonthly && months.length > 1) {
+    html += `<div style="margin-bottom:24px;">
+      <div style="font-size:14px;font-weight:700;color:#1a1b2e;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e8e9ef">По місяцях</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:#f4f5f9;">
+          <th style="padding:8px 12px;text-align:left;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px;border-radius:6px 0 0 6px">Місяць</th>
+          <th style="padding:8px 12px;text-align:right;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px">Витрати</th>
+          <th style="padding:8px 12px;text-align:right;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px">Ліміт</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;font-size:10px;border-radius:0 6px 6px 0">Статус</th>
+        </tr></thead><tbody>`;
+    months.forEach(m => {
+      const mExp  = db.expenses.filter(e=>e.date?.startsWith(m)).reduce((s,e)=>s+(e.amount||0),0);
+      const mLim  = db.budgetCats.reduce((s,c)=>s+(c.limit||0),0);
+      const over  = mLim>0 && mExp>mLim;
+      const pct   = mLim>0 ? Math.min(100,Math.round((mExp/mLim)*100)) : null;
+      html += `<tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:10px 12px;font-weight:600;color:#1a1b2e">${monthName(m)} ${m.split('-')[0]}</td>
+        <td style="padding:10px 12px;text-align:right;font-weight:700;color:${over?'#ef4444':'#1a1b2e'}">${fmt(mExp)}</td>
+        <td style="padding:10px 12px;text-align:right;color:#888">${mLim?fmt(mLim):'—'}</td>
+        <td style="padding:10px 12px;">
+          ${pct!==null?`<span style="background:${over?'#fee2e2':'#dcfce7'};color:${over?'#ef4444':'#22c55e'};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">${over?'Перевищено '+pct+'%':pct+'% використано'}</span>`:'—'}
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  // Transactions list
+  if (incTxList && allExp.length) {
+    const sorted = [...allExp].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    html += `<div style="margin-bottom:24px;">
+      <div style="font-size:14px;font-weight:700;color:#1a1b2e;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e8e9ef">Всі транзакції (${sorted.length})</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <thead><tr style="background:#f4f5f9;">
+          <th style="padding:7px 10px;text-align:left;font-weight:600;color:#888;text-transform:uppercase;font-size:9px;letter-spacing:.04em;border-radius:6px 0 0 6px">Дата</th>
+          <th style="padding:7px 10px;text-align:left;font-weight:600;color:#888;text-transform:uppercase;font-size:9px;letter-spacing:.04em">Категорія</th>
+          <th style="padding:7px 10px;text-align:left;font-weight:600;color:#888;text-transform:uppercase;font-size:9px;letter-spacing:.04em">Опис</th>
+          <th style="padding:7px 10px;text-align:right;font-weight:600;color:#888;text-transform:uppercase;font-size:9px;letter-spacing:.04em;border-radius:0 6px 6px 0">Сума</th>
+        </tr></thead><tbody>`;
+    sorted.forEach(e => {
+      const cat = db.budgetCats.find(c=>c.id===e.catId);
+      const color = cat?.color||ACCENT;
+      html += `<tr style="border-bottom:1px solid #f5f5f5;">
+        <td style="padding:7px 10px;color:#888">${e.date?new Date(e.date).toLocaleDateString('uk-UA',{day:'numeric',month:'short'}):'—'}</td>
+        <td style="padding:7px 10px;"><span style="background:${color}18;color:${color};padding:2px 7px;border-radius:6px;font-weight:600;font-size:10px">${cat?.icon||''} ${cat?.name||'—'}</span></td>
+        <td style="padding:7px 10px;color:#555">${e.desc||'—'}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;color:#ef4444">−${fmt(e.amount)}</td>
+      </tr>`;
+    });
+    html += `<tr style="background:#f4f5f9;font-weight:700;">
+      <td colspan="3" style="padding:8px 10px;border-radius:6px 0 0 6px">Разом</td>
+      <td style="padding:8px 10px;text-align:right;color:#ef4444;border-radius:0 6px 6px 0">−${fmt(totalExp)}</td>
+    </tr>
+    </tbody></table></div>`;
+  }
+
+  // Footer
+  html += `<div style="margin-top:32px;padding-top:12px;border-top:1px solid #e8e9ef;display:flex;justify-content:space-between;font-size:10px;color:#bbb;">
+    <span>K-Pay · Звіт по бюджету</span>
+    <span>${new Date().toLocaleDateString('uk-UA')}</span>
+  </div>`;
+
+  // Create print container
+  let printEl = document.getElementById('kpay-print-report');
+  if (!printEl) {
+    printEl = document.createElement('div');
+    printEl.id = 'kpay-print-report';
+    document.body.appendChild(printEl);
+  }
+  printEl.style.cssText = 'display:block;font-family:Plus Jakarta Sans,sans-serif;font-size:13px;color:#1a1b2e;line-height:1.5;';
+  printEl.innerHTML = html;
+
+  closeModal('budget-report-modal');
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { printEl.innerHTML = ''; }, 1000);
+  }, 150);
+};
+
 function initBudget() {
   const el = document.getElementById('budget-month');
   if (!el.value) el.value = thisMonth();
@@ -2597,6 +2874,20 @@ window.exportData = function() { const b=new Blob([JSON.stringify(db,null,2)],{t
 window.importData = function(e) { const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(d.employees&&d.payroll){db=d;saveToFirebase();renderDashboard();showToast('ok','✓ Дані імпортовано');} }catch{alert('Помилка файлу');} }; r.readAsText(file); };
 window.clearData = function() { db={employees:[],payroll:[],budgetCats:[],expenses:[],incomeCats:[],incomes:[],settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}}; saveToFirebase(); goto('dashboard'); };
 window.clearPayrollOnly = function() { if(!confirm('Видалити всі записи нарахувань та історію?')) return; db.payroll=[]; save(); showToast('ok','✓ Нарахування очищено'); renderDashboard(); updatePendingBadge(); };
+window.clearIncomeData = function() {
+  if (!confirm('Видалити всі надходження та категорії надходжень?')) return;
+  db.incomes=[]; db.incomeCats=[];
+  save(); showToast('ok','✓ Надходження очищено');
+  if(document.getElementById('pg-income').classList.contains('active')) renderIncome();
+  if(document.getElementById('pg-analytics').classList.contains('active')) renderAnalytics();
+};
+window.clearBudgetData = function() {
+  if (!confirm('Видалити всі витрати та категорії бюджету?')) return;
+  db.expenses=[]; db.budgetCats=[]; db.budgetLimits={};
+  save(); showToast('ok','✓ Бюджет очищено');
+  if(document.getElementById('pg-budget').classList.contains('active')) initBudget();
+  if(document.getElementById('pg-analytics').classList.contains('active')) renderAnalytics();
+};
 window.clearOrphanPayroll = function() {
   const before=db.payroll.length;
   db.payroll=db.payroll.filter(p=>db.employees.find(e=>e.id===p.empId));
