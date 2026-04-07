@@ -573,7 +573,10 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
     <div id="pg-income" class="page">
       <div class="section-header">
         <div><div class="section-title">Інші надходження</div></div>
-        <button class="btn btn-primary" onclick="openIncomeModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Додати</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="openIncomeCatManager()"><i class="ph-light ph-tag" style="font-size:15px"></i> Категорії</button>
+          <button class="btn btn-primary" onclick="openIncomeModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Додати</button>
+        </div>
       </div>
       <div class="grid-2" style="margin-bottom:16px;">
         <div class="card" style="margin-bottom:0"><div class="card-header"><div class="card-title">За категоріями</div></div><canvas id="income-donut" width="180" height="180" style="display:block;margin:0 auto;"></canvas><div class="donut-legend" id="income-legend" style="margin-top:12px;"></div></div>
@@ -606,6 +609,28 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
           </select>
         </div>
       </div>
+
+      <!-- ── ЗАОЩАДЖЕННЯ ── -->
+      <div class="card" style="margin-bottom:16px;border-left:4px solid var(--green);">
+        <div class="card-header" style="margin-bottom:12px;">
+          <div>
+            <div class="card-title" style="font-size:16px;">💰 Баланс заощаджень</div>
+            <div class="card-sub">Надходження + Нарахування − Витрати за вибраний період</div>
+          </div>
+        </div>
+        <!-- Великі цифри -->
+        <div class="stats-grid" id="savings-stats" style="margin-bottom:16px;"></div>
+        <!-- SVG графік заощаджень -->
+        <div style="overflow-x:auto;">
+          <div id="savings-chart" style="min-width:500px;"></div>
+        </div>
+        <!-- Місячна таблиця -->
+        <div style="margin-top:14px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">По місяцях</div>
+          <div class="table-wrap"><table style="min-width:420px"><thead><tr><th>Місяць</th><th style="color:var(--green)">Нарахування + Надходження</th><th style="color:var(--red)">Витрати</th><th>Заощадження</th></tr></thead><tbody id="savings-tbody"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- Перемикачі співробітників -->
       <div class="card" style="margin-bottom:16px;">
         <div class="card-header"><div class="card-title">Показати співробітників</div><button class="btn btn-ghost btn-sm" onclick="toggleAllAnEmployees()">Всі / Жоден</button></div>
@@ -913,6 +938,44 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('income-modal')">Скасувати</button><button class="btn btn-primary" onclick="saveIncome()">Зберегти</button></div>
 </div></div>
 
+
+<!-- INCOME CATEGORY MANAGER MODAL -->
+<div class="overlay" id="income-cat-modal"><div class="modal" style="max-width:520px;">
+  <div class="modal-drag-bar" id="income-cat-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="income-cat-modal-title">Категорії надходжень</span>
+    <button class="modal-close-x" onclick="closeModal('income-cat-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <!-- Список категорій -->
+    <div id="income-cat-list" style="margin-bottom:16px;"></div>
+    <!-- Форма додавання/редагування -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em" id="income-cat-form-title">Нова категорія</div>
+      <div class="form-grid">
+        <div class="form-row"><label>Назва *</label><input id="ic-cat-name" type="text" placeholder="Фріланс"></div>
+        <div class="form-row"><label>Колір</label><div class="color-picker-row" id="income-color-picker" style="margin-top:4px"></div></div>
+        <div class="form-row full">
+          <label>Іконка — емодзі або SVG код</label>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <textarea id="ic-cat-icon" rows="3" oninput="previewIcCatIcon()" placeholder="Вставте емодзі 💰 або SVG код" style="flex:1;resize:vertical;font-size:13px;font-family:monospace;min-height:80px"></textarea>
+            <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg);overflow:hidden;" id="ic-cat-icon-preview">
+              <span style="font-size:26px;color:var(--text-muted)">?</span>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Приймає: 💰 або &lt;svg xmlns="http://www.w3.org/2000/svg"…&gt;…&lt;/svg&gt;</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-primary btn-sm" onclick="saveIncomeCat()">Зберегти категорію</button>
+        <button class="btn btn-ghost btn-sm" id="ic-cat-cancel-btn" style="display:none" onclick="cancelIncomeCatEdit()">Скасувати</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('income-cat-modal')">Закрити</button>
+  </div>
+</div></div>
 
 <!-- RECEIPT SCANNER MODAL -->
 <div class="overlay" id="receipt-modal"><div class="modal" style="max-width:620px;">
@@ -1921,9 +1984,9 @@ window.saveIncome = function() {
   if(editIncomeId){const i=db.incomes.findIndex(x=>x.id===editIncomeId);if(i!==-1)db.incomes[i]=inc;}else db.incomes.push(inc);
   save(); closeModal('income-modal'); renderIncome();
 };
-function renderIncome() { const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:COLORS[idx%COLORS.length],icon:cat.icon||'💰'})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.icon||'💰'} ${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
+function renderIncome() { const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:cat.color||COLORS[idx%COLORS.length],icon:cat.icon||'💰',iconHtml:renderIcon(cat.icon||'💰','13px')})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.icon||'💰'} ${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
 window.renderIncomeChart = function() { const catId=document.getElementById('income-cat-filter').value, now=new Date(), months=[]; for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; const list=db.incomes.filter(inc=>inc.date?.startsWith(key)&&(!catId||inc.catId===catId)); months.push({key,label:monthShort(key),total:list.reduce((s,i)=>s+(i.amount||0),0)}); } const mx=Math.max(...months.map(m=>m.total),1); document.getElementById('income-chart-12').innerHTML=months.map(m=>`<div class="cbar-wrap"><div style="width:100%;display:flex;flex-direction:column;align-items:center;height:100px;justify-content:flex-end"><div class="cbar paid" data-tip="${m.label}: ${fmt(m.total)}" style="height:${Math.round((m.total/mx)*92)}px;width:100%;"></div></div><div class="cbar-label">${m.label}</div></div>`).join(''); };
-function renderIncomeTable() { const tb=document.getElementById('income-tbody'); const list=[...db.incomes].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,30); tb.innerHTML=list.length?list.map(inc=>{ const cat=db.incomeCats.find(c=>c.id===inc.catId); return `<tr><td><span class="badge badge-green">${cat?.icon||'💰'} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date).toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openIncomeModal('${inc.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`; }).join(''):`<tr><td colspan="5"><div class="empty">Немає надходжень</div></td></tr>`; }
+function renderIncomeTable() { const tb=document.getElementById('income-tbody'); const list=[...db.incomes].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,30); tb.innerHTML=list.length?list.map(inc=>{ const cat=db.incomeCats.find(c=>c.id===inc.catId); const color=cat?.color||'var(--green)'; return `<tr><td><span class="badge" style="background:${color}22;color:${color};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon||'💰','13px'):''} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date).toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openIncomeModal('${inc.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`; }).join(''):`<tr><td colspan="5"><div class="empty">Немає надходжень</div></td></tr>`; }
 window.deleteIncome = function(id) { if(!confirm('Видалити?'))return; db.incomes=db.incomes.filter(i=>i.id!==id); save(); renderIncome(); };
 
 // ── PAY MODAL STATISTICS ──
@@ -2040,6 +2103,127 @@ function renderPayModalStats() {
   renderStats(null);
 }
 
+// ── SAVINGS (Баланс заощаджень) ──
+function renderSavings(months) {
+  const cur = db.settings.currency || 'грн';
+  // Для кожного місяця рахуємо: gross нарахувань + надходження - витрати
+  const data = months.map(m => {
+    const payrollGross = db.payroll.filter(p=>p.month===m).reduce((s,p)=>s+(p.gross||0),0);
+    const income = db.incomes.filter(i=>i.date?.startsWith(m)).reduce((s,i)=>s+(i.amount||0),0);
+    const expenses = db.expenses.filter(e=>e.date?.startsWith(m)).reduce((s,e)=>s+(e.amount||0),0);
+    const inflow = payrollGross + income;
+    const savings = inflow - expenses;
+    return {m, label:monthShort(m), payrollGross, income, inflow, expenses, savings};
+  });
+
+  const totalInflow   = data.reduce((s,d)=>s+d.inflow, 0);
+  const totalExpenses = data.reduce((s,d)=>s+d.expenses, 0);
+  const totalSavings  = totalInflow - totalExpenses;
+  const savingsPct    = totalInflow>0 ? Math.round((totalSavings/totalInflow)*100) : 0;
+
+  // Стат-картки
+  document.getElementById('savings-stats').innerHTML = `
+    <div class="stat-card" style="margin-bottom:0">
+      <div class="stat-label">Нарахування + Надходження</div>
+      <div class="stat-value" style="font-size:20px;color:var(--green)">${fmt(totalInflow)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">за весь період</div>
+    </div>
+    <div class="stat-card" style="margin-bottom:0">
+      <div class="stat-label">Витрати</div>
+      <div class="stat-value" style="font-size:20px;color:var(--red)">${fmt(totalExpenses)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">за весь період</div>
+    </div>
+    <div class="stat-card" style="margin-bottom:0;${totalSavings>=0?'border:1.5px solid var(--green);background:var(--green-light);':'border:1.5px solid var(--red);background:var(--red-light);'}">
+      <div class="stat-label" style="${totalSavings>=0?'color:var(--green)':'color:var(--red)'}">Заощаджено</div>
+      <div class="stat-value" style="font-size:20px;color:${totalSavings>=0?'var(--green)':'var(--red)'}">${totalSavings>=0?'+':''}${fmt(totalSavings)}</div>
+      <div style="font-size:11px;color:${totalSavings>=0?'var(--green)':'var(--red)'};margin-top:4px">${savingsPct>=0?savingsPct+'% від надходжень':Math.abs(savingsPct)+'% перевитрата'}</div>
+    </div>`;
+
+  // SVG графік
+  const W = Math.max(500, months.length * 56);
+  const H = 180;
+  const PAD = {top:16, right:16, bottom:28, left:58};
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const allVals = data.flatMap(d=>[d.inflow, d.expenses, Math.abs(d.savings)]);
+  const maxV = Math.max(...allVals, 1);
+  const xStep = chartW / Math.max(data.length-1, 1);
+  const getY = v => PAD.top + chartH - (v/maxV)*chartH;
+  const getX = i => PAD.left + i*xStep;
+
+  // Y-сітка
+  let grid = '';
+  for(let i=0;i<=4;i++){
+    const y=PAD.top+(chartH/4)*i;
+    const v=maxV*(1-i/4);
+    const lbl=v>=1000?Math.round(v/1000)+'к':Math.round(v);
+    grid+=`<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#e8e9ef" stroke-width="1"/>
+    <text x="${PAD.left-6}" y="${y+4}" text-anchor="end" font-size="9" fill="#8b8fa8">${lbl}</text>`;
+  }
+  // X-мітки
+  let xLabels='';
+  data.forEach((d,i)=>{
+    if(data.length<=12||i%2===0)
+      xLabels+=`<text x="${getX(i)}" y="${H-6}" text-anchor="middle" font-size="9" fill="#8b8fa8">${d.label}</text>`;
+  });
+
+  // Area + лінії
+  const inflowPts = data.map((d,i)=>`${getX(i)},${getY(d.inflow)}`).join(' ');
+  const expPts    = data.map((d,i)=>`${getX(i)},${getY(d.expenses)}`).join(' ');
+
+  const inflowArea = `M${getX(0)},${PAD.top+chartH} `+data.map((d,i)=>`L${getX(i)},${getY(d.inflow)}`).join(' ')+` L${getX(data.length-1)},${PAD.top+chartH} Z`;
+  const expArea    = `M${getX(0)},${PAD.top+chartH} `+data.map((d,i)=>`L${getX(i)},${getY(d.expenses)}`).join(' ')+` L${getX(data.length-1)},${PAD.top+chartH} Z`;
+
+  // Dots для savings (бар-кольори)
+  let savDots='';
+  data.forEach((d,i)=>{
+    const col = d.savings>=0?'var(--green)':'var(--red)';
+    const yPos = getY(Math.abs(d.savings));
+    savDots+=`<circle cx="${getX(i)}" cy="${yPos}" r="4" fill="${col}" stroke="white" stroke-width="1.5">
+      <title>${d.label}: заощадження ${d.savings>=0?'+':''}${fmt(d.savings)}</title>
+    </circle>`;
+  });
+  const savPts = data.map((d,i)=>`${getX(i)},${getY(Math.abs(d.savings))}`).join(' ');
+
+  document.getElementById('savings-chart').innerHTML = `
+    <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sav-inflow-g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22c55e" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="sav-exp-g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ef4444" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${grid}${xLabels}
+      <path d="${inflowArea}" fill="url(#sav-inflow-g)"/>
+      <polyline points="${inflowPts}" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${expArea}" fill="url(#sav-exp-g)"/>
+      <polyline points="${expPts}" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6,3"/>
+      <polyline points="${savPts}" fill="none" stroke="#7c6ef7" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="3,3" opacity="0.6"/>
+      ${savDots}
+    </svg>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;padding:0 4px">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:12px;height:3px;background:var(--green);border-radius:2px"></div>Надходження</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:12px;height:2px;border-top:2px dashed var(--red)"></div>Витрати</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div>Заощадження (+ / −)</div>
+    </div>`;
+
+  // Таблиця по місяцях
+  document.getElementById('savings-tbody').innerHTML = data.map(d=>{
+    const sCol = d.savings>=0?'var(--green)':'var(--red)';
+    return `<tr>
+      <td style="font-weight:600">${monthName(d.m)} ${d.m.split('-')[0]}</td>
+      <td style="color:var(--green)">${fmt(d.inflow)}<div style="font-size:10px;color:var(--text-muted)">зп: ${fmt(d.payrollGross)} + дохід: ${fmt(d.income)}</div></td>
+      <td style="color:var(--red)">${fmt(d.expenses)}</td>
+      <td style="color:${sCol};font-weight:700">${d.savings>=0?'+':''}${fmt(d.savings)}</td>
+    </tr>`;
+  }).join('');
+}
+
 // ── ANALYTICS PAGE ──
 const AN_COLORS = ['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4'];
 let anActiveEmps = new Set();
@@ -2080,6 +2264,9 @@ function renderAnalytics() {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
   }
+
+  // Заощадження
+  renderSavings(months);
 
   // Toggles співробітників
   const togglesEl = document.getElementById('an-emp-toggles');
@@ -2249,7 +2436,106 @@ window.toggleAnEmp = function(id, el, color) {
 };
 
 function populateIncomeCats() { document.getElementById('ic-cat').innerHTML=db.incomeCats.map(c=>`<option value="${c.id}">${c.icon||'💰'} ${c.name}</option>`).join(''); }
-window.promptNewIncomeCat = function() { const name=prompt('Назва нової категорії:'); if(!name?.trim())return; const icon=prompt('Іконка (емодзі):')||'💰'; db.incomeCats.push({id:uid(),name:name.trim(),icon}); save(); populateIncomeCats(); };
+
+let editIncomeCatId = null;
+let selectedIncomeColor = '#22c55e';
+
+function renderIncomeCatColorPicker() {
+  document.getElementById('income-color-picker').innerHTML = COLORS.map(c=>`<div class="color-chip ${c===selectedIncomeColor?'sel':''}" style="background:${c}" onclick="selectIncomeColor('${c}')"></div>`).join('');
+}
+window.selectIncomeColor = function(c) { selectedIncomeColor=c; renderIncomeCatColorPicker(); };
+
+window.previewIcCatIcon = function() {
+  const val = document.getElementById('ic-cat-icon').value.trim();
+  const prev = document.getElementById('ic-cat-icon-preview');
+  prev.innerHTML = val ? renderIcon(val, '28px') : '<span style="font-size:26px;color:var(--text-muted)">?</span>';
+};
+
+function renderIncomeCatList() {
+  const el = document.getElementById('income-cat-list');
+  if (!db.incomeCats.length) { el.innerHTML = '<div class="empty">Немає категорій</div>'; return; }
+  el.innerHTML = db.incomeCats.map(cat => {
+    const color = cat.color || COLORS[0];
+    const total = db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="width:36px;height:36px;border-radius:10px;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">${renderIcon(cat.icon||'💰','18px')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${cat.name}</div>
+        <div style="font-size:11px;color:var(--text-muted)">Всього: ${fmt(total)}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="editIncomeCat('${cat.id}')">✏</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteIncomeCat('${cat.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.openIncomeCatManager = function() {
+  editIncomeCatId = null;
+  selectedIncomeColor = COLORS[0];
+  document.getElementById('ic-cat-name').value = '';
+  document.getElementById('ic-cat-icon').value = '';
+  document.getElementById('ic-cat-icon-preview').innerHTML = '<span style="font-size:26px;color:var(--text-muted)">?</span>';
+  document.getElementById('income-cat-form-title').textContent = 'Нова категорія';
+  document.getElementById('ic-cat-cancel-btn').style.display = 'none';
+  renderIncomeCatColorPicker();
+  renderIncomeCatList();
+  document.getElementById('income-cat-modal').classList.add('open');
+};
+
+window.editIncomeCat = function(id) {
+  const cat = db.incomeCats.find(c=>c.id===id);
+  if (!cat) return;
+  editIncomeCatId = id;
+  selectedIncomeColor = cat.color || COLORS[0];
+  document.getElementById('ic-cat-name').value = cat.name;
+  document.getElementById('ic-cat-icon').value = cat.icon || '';
+  previewIcCatIcon();
+  document.getElementById('income-cat-form-title').textContent = 'Редагувати категорію';
+  document.getElementById('ic-cat-cancel-btn').style.display = 'inline-flex';
+  renderIncomeCatColorPicker();
+};
+
+window.cancelIncomeCatEdit = function() {
+  editIncomeCatId = null;
+  document.getElementById('ic-cat-name').value = '';
+  document.getElementById('ic-cat-icon').value = '';
+  document.getElementById('ic-cat-icon-preview').innerHTML = '<span style="font-size:26px;color:var(--text-muted)">?</span>';
+  document.getElementById('income-cat-form-title').textContent = 'Нова категорія';
+  document.getElementById('ic-cat-cancel-btn').style.display = 'none';
+};
+
+window.saveIncomeCat = function() {
+  const name = document.getElementById('ic-cat-name').value.trim();
+  if (!name) return alert('Введіть назву категорії');
+  const icon = document.getElementById('ic-cat-icon').value.trim() || '💰';
+  const color = selectedIncomeColor;
+  if (editIncomeCatId) {
+    const i = db.incomeCats.findIndex(c=>c.id===editIncomeCatId);
+    if (i !== -1) db.incomeCats[i] = {...db.incomeCats[i], name, icon, color};
+    editIncomeCatId = null;
+    document.getElementById('ic-cat-cancel-btn').style.display = 'none';
+    document.getElementById('income-cat-form-title').textContent = 'Нова категорія';
+  } else {
+    db.incomeCats.push({id:uid(), name, icon, color});
+  }
+  document.getElementById('ic-cat-name').value = '';
+  document.getElementById('ic-cat-icon').value = '';
+  document.getElementById('ic-cat-icon-preview').innerHTML = '<span style="font-size:26px;color:var(--text-muted)">?</span>';
+  save(); renderIncomeCatList(); renderIncome(); populateIncomeCats();
+  showToast('ok', '✓ Категорію збережено');
+};
+
+window.deleteIncomeCat = function(id) {
+  const cnt = db.incomes.filter(i=>i.catId===id).length;
+  if (!confirm(`Видалити категорію?${cnt ? ' '+cnt+' надходжень також будуть видалені.' : ''}`)) return;
+  db.incomeCats = db.incomeCats.filter(c=>c.id!==id);
+  db.incomes = db.incomes.filter(i=>i.catId!==id);
+  save(); renderIncomeCatList(); renderIncome(); populateIncomeCats();
+};
+
+window.promptNewIncomeCat = function() { openIncomeCatManager(); };
 
 // ── DONUT ──
 function drawDonut(cId,lId,data) {
@@ -2628,7 +2914,8 @@ function seedDemoData() {
   for(let i=0;i<=11;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.employees.forEach(emp=>{ const base=calcGross(emp,db.settings.hours); const{gross,tax,esv,net}=calcTaxes(base); db.payroll.push({id:uid(),empId:emp.id,month:key,gross,tax,esv,net,hours:db.settings.hours,bonus:0,advance:0,deductions:0,status:i>0?'paid':(emp.id===ids[0]?'paid':'pending'),note:''}); }); }
   const bc=['#7c6ef7','#3b82f6','#f97316','#22c55e','#f472b6','#eab308'];
   [['Авто','🚗',8000],['Будинок','🏠',12000],['Відпочинок','✈️',5000],['Подарунки','🎁',3000],['Внески','💳',2000],['Їжа','🍕',6000]].forEach(([name,icon,limit],idx)=>{ const id=uid(); db.budgetCats.push({id,name,icon,limit,color:bc[idx]}); db.expenses.push({id:uid(),catId:id,amount:Math.round(limit*.45+Math.random()*limit*.25),date:thisMonth()+'-10',desc:'Приклад'}); });
-  [['Фріланс','💻'],['Оренда','🏘'],['Дивіденди','📈'],['Продаж','🛒']].forEach(([name,icon])=>{ const id=uid(); db.incomeCats.push({id,name,icon}); for(let i=0;i<6;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.incomes.push({id:uid(),catId:id,amount:Math.round(2000+Math.random()*8000),date:key+'-15',desc:'Надходження'}); } });
+  const ic=['#22c55e','#3b82f6','#eab308','#f97316'];
+  [['Фріланс','💻'],['Оренда','🏘'],['Дивіденди','📈'],['Продаж','🛒']].forEach(([name,icon],idx)=>{ const id=uid(); db.incomeCats.push({id,name,icon,color:ic[idx]}); for(let i=0;i<6;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.incomes.push({id:uid(),catId:id,amount:Math.round(2000+Math.random()*8000),date:key+'-15',desc:'Надходження'}); } });
 }
 
 // ── BOOT — Firebase Authentication ──
