@@ -589,8 +589,29 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><div class="card-title">Витрати місяця</div></div>
-          <div class="table-wrap"><table><thead><tr><th>Категорія</th><th>Опис</th><th>Дата</th><th>Сума</th><th></th></tr></thead><tbody id="exp-tbody"></tbody></table></div>
+          <div class="card-header">
+            <div class="card-title">Витрати місяця</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <select id="exp-sort-col" onchange="renderExpenses()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12px;outline:none;-webkit-appearance:none;cursor:pointer">
+                <option value="date">За датою</option>
+                <option value="cat">За категорією</option>
+                <option value="amount">За сумою</option>
+              </select>
+              <button id="exp-sort-dir-btn" onclick="toggleExpSortDir()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;min-height:34px" title="Напрямок сортування">
+                <span id="exp-sort-dir-label">↓ Спадання</span>
+              </button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr>
+              <th onclick="setExpSort('cat')" style="cursor:pointer;user-select:none" id="exp-th-cat">Категорія</th>
+              <th>Опис</th>
+              <th onclick="setExpSort('date')" style="cursor:pointer;user-select:none" id="exp-th-date">Дата</th>
+              <th onclick="setExpSort('amount')" style="cursor:pointer;user-select:none" id="exp-th-amount">Сума</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="exp-tbody"></tbody>
+          </table></div>
         </div>
       </div>
 
@@ -1084,9 +1105,38 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
     <button class="modal-close-x" onclick="closeModal('income-modal')">×</button>
   </div>
   <div class="modal-body">
-    <div class="form-grid"><div class="form-row full"><label>Категорія</label><div style="display:flex;gap:8px;"><select id="ic-cat" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;outline:none;min-height:44px;-webkit-appearance:none;"></select><button class="btn btn-outline btn-sm" onclick="promptNewIncomeCat()">+ нова</button></div></div><div class="form-row"><label>Сума (грн)</label><input id="ic-amount" type="number" placeholder="0"></div><div class="form-row"><label>Дата</label><div style="position:relative"><input id="ic-date-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('ic-date','ic-date-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;-webkit-appearance:none;width:100%"><input id="ic-date" type="hidden"></div></div><div class="form-row full"><label>Опис</label><input id="ic-desc" type="text" placeholder="Необов'язково"></div></div>
+    <div class="form-grid"><div class="form-row full"><label>Категорія</label><div style="display:flex;gap:8px;"><select id="ic-cat" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;outline:none;min-height:44px;-webkit-appearance:none;"></select><button class="btn btn-outline btn-sm" onclick="openIncomeCatModal()">+ нова</button></div></div><div class="form-row"><label>Сума (грн)</label><input id="ic-amount" type="number" placeholder="0"></div><div class="form-row"><label>Дата</label><div style="position:relative"><input id="ic-date-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('ic-date','ic-date-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;-webkit-appearance:none;width:100%"><input id="ic-date" type="hidden"></div></div><div class="form-row full"><label>Опис</label><input id="ic-desc" type="text" placeholder="Необов'язково"></div></div>
   </div>
   <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('income-modal')">Скасувати</button><button class="btn btn-primary" onclick="saveIncome()">Зберегти</button></div>
+</div></div>
+
+<!-- INCOME CATEGORY MODAL -->
+<div class="overlay" id="income-cat-modal"><div class="modal">
+  <div class="modal-drag-bar" id="income-cat-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="income-cat-modal-title">Нова категорія</span>
+    <button class="modal-close-x" onclick="closeModal('income-cat-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row full"><label>Назва *</label><input id="icat-name" type="text" placeholder="Фріланс / Оренда / Дивіденди"></div>
+      <div class="form-row full"><label>Колір</label><div class="color-picker-row" id="icat-color-picker" style="margin-top:4px"></div></div>
+      <div class="form-row full">
+        <label>Іконка — емодзі або SVG код</label>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <textarea id="icat-icon" rows="3" oninput="previewIcatIcon()" placeholder="Вставте емодзі 💰 або SVG код" style="flex:1;resize:vertical;font-size:13px;font-family:monospace;min-height:80px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--text);outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)';this.style.background='#fff'" onblur="this.style.borderColor='var(--border)';this.style.background='var(--bg)'"></textarea>
+          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg);overflow:hidden;" id="icat-icon-preview">
+            <span style="font-size:26px;color:var(--text-muted)">?</span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Приймає: 💰 або &lt;svg xmlns="http://www.w3.org/2000/svg"…&gt;…&lt;/svg&gt;</div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('income-cat-modal')">Скасувати</button>
+    <button class="btn btn-primary" onclick="saveIncomeCat()">Зберегти</button>
+  </div>
 </div></div>
 
 
@@ -2030,16 +2080,49 @@ window.addExpense = function() {
   save(); renderBudget();
 };
 
+let expSortDir = 'desc';
+function toggleExpSortDir() {
+  expSortDir = expSortDir === 'desc' ? 'asc' : 'desc';
+  document.getElementById('exp-sort-dir-label').textContent = expSortDir === 'desc' ? '↓ Спадання' : '↑ Зростання';
+  renderExpenses();
+}
+function setExpSort(col) {
+  const sel = document.getElementById('exp-sort-col');
+  if (sel.value === col) { toggleExpSortDir(); } else { sel.value = col; renderExpenses(); }
+}
 function renderExpenses() {
   const month = getBudgetMonth();
+  const col = document.getElementById('exp-sort-col')?.value || 'date';
+  const dir = expSortDir;
+  // Update th indicators
+  ['cat','date','amount'].forEach(c => {
+    const el = document.getElementById(`exp-th-${c}`);
+    if (!el) return;
+    const arrow = col===c ? (dir==='desc'?'↓':'↑') : '';
+    el.style.color = col===c ? 'var(--accent)' : '';
+    el.dataset.arrow = arrow;
+    el.innerHTML = {cat:'Категорія',date:'Дата',amount:'Сума'}[c] + (arrow ? ` <span style="color:var(--accent);font-size:11px">${arrow}</span>` : '');
+  });
   const tb=document.getElementById('exp-tbody');
-  const list=[...db.expenses.filter(e=>e.date?.startsWith(month))].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const list=[...db.expenses.filter(e=>e.date?.startsWith(month))].sort((a,b)=>{
+    let va, vb;
+    if (col === 'date') { va = a.date||''; vb = b.date||''; }
+    else if (col === 'amount') { va = a.amount||0; vb = b.amount||0; }
+    else { // cat
+      const ca = db.budgetCats.find(c=>c.id===a.catId)?.name||'';
+      const cb = db.budgetCats.find(c=>c.id===b.catId)?.name||'';
+      va = ca; vb = cb;
+    }
+    if (va < vb) return dir==='desc' ? 1 : -1;
+    if (va > vb) return dir==='desc' ? -1 : 1;
+    return 0;
+  });
   tb.innerHTML=list.length ? list.map(e=>{
     const cat=db.budgetCats.find(c=>c.id===e.catId);
     return `<tr>
       <td><span class="badge" style="background:${cat?.color||'#eee'}22;color:${cat?.color||'#888'};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'—'}</span></td>
       <td style="color:var(--text-muted)">${e.desc||'—'}</td>
-      <td>${e.date?new Date(e.date).toLocaleDateString('uk-UA'):'—'}</td>
+      <td>${e.date?new Date(e.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td>
       <td style="font-weight:700;color:var(--red)">−${fmt(e.amount)}</td>
       <td><button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">✕</button></td>
     </tr>`;
@@ -2078,7 +2161,7 @@ window.saveIncome = function() {
   if(editIncomeId){const i=db.incomes.findIndex(x=>x.id===editIncomeId);if(i!==-1)db.incomes[i]=inc;}else db.incomes.push(inc);
   save(); closeModal('income-modal'); renderIncome();
 };
-function renderIncome() { const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:COLORS[idx%COLORS.length],icon:cat.icon||'💰'})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.icon||'💰'} ${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
+function renderIncome() { const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:cat.color||COLORS[idx%COLORS.length],icon:cat.icon||'💰'})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.icon||'💰'} ${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
 window.renderIncomeChart = function() { const catId=document.getElementById('income-cat-filter').value, now=new Date(), months=[]; for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; const list=db.incomes.filter(inc=>inc.date?.startsWith(key)&&(!catId||inc.catId===catId)); months.push({key,label:monthShort(key),total:list.reduce((s,i)=>s+(i.amount||0),0)}); } const mx=Math.max(...months.map(m=>m.total),1); document.getElementById('income-chart-12').innerHTML=months.map(m=>`<div class="cbar-wrap"><div style="width:100%;display:flex;flex-direction:column;align-items:center;height:100px;justify-content:flex-end"><div class="cbar paid" data-tip="${m.label}: ${fmt(m.total)}" style="height:${Math.round((m.total/mx)*92)}px;width:100%;"></div></div><div class="cbar-label">${m.label}</div></div>`).join(''); };
 function renderIncomeTable() {
   const tb=document.getElementById('income-tbody');
@@ -2088,7 +2171,8 @@ function renderIncomeTable() {
   const shown=list.slice(0,LIMIT);
   tb.innerHTML=shown.map(inc=>{
     const cat=db.incomeCats.find(c=>c.id===inc.catId);
-    return `<tr><td><span class="badge badge-green">${cat?.icon||'💰'} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date).toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openIncomeModal('${inc.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`;
+    const catColor = cat?.color || 'var(--green)';
+    return `<tr><td><span class="badge" style="background:${catColor}22;color:${catColor};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon||'💰','13px'):'💰'} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openIncomeModal('${inc.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`;
   }).join('');
   if(list.length>LIMIT) tb.innerHTML+=`<tr><td colspan="5" style="text-align:center;padding:10px;color:var(--text-muted);font-size:12px">Показано ${LIMIT} із ${list.length} записів</td></tr>`;
 }
@@ -2801,8 +2885,45 @@ window.toggleAnEmp = function(id, el, color) {
   renderAnalytics();
 };
 
-function populateIncomeCats() { document.getElementById('ic-cat').innerHTML=db.incomeCats.map(c=>`<option value="${c.id}">${c.icon||'💰'} ${c.name}</option>`).join(''); }
-window.promptNewIncomeCat = function() { const name=prompt('Назва нової категорії:'); if(!name?.trim())return; const icon=prompt('Іконка (емодзі):')||'💰'; db.incomeCats.push({id:uid(),name:name.trim(),icon}); save(); populateIncomeCats(); };
+function populateIncomeCats() { document.getElementById('ic-cat').innerHTML=db.incomeCats.map(c=>`<option value="${c.id}">${renderIcon(c.icon,'14px')} ${c.name}</option>`).join(''); }
+
+let editIcatId = null;
+let icatSelectedColor = '#7c6ef7';
+
+window.previewIcatIcon = function() {
+  const val = document.getElementById('icat-icon').value.trim();
+  const prev = document.getElementById('icat-icon-preview');
+  prev.innerHTML = val ? renderIcon(val, '28px') : '<span style="font-size:26px;color:var(--text-muted)">?</span>';
+};
+
+window.openIncomeCatModal = function(id) {
+  editIcatId = id || null;
+  const cat = id ? db.incomeCats.find(c=>c.id===id) : null;
+  document.getElementById('income-cat-modal-title').textContent = cat ? 'Редагувати категорію' : 'Нова категорія';
+  document.getElementById('icat-name').value = cat?.name || '';
+  document.getElementById('icat-icon').value = cat?.icon || '';
+  icatSelectedColor = cat?.color || COLORS[0];
+  document.getElementById('icat-color-picker').innerHTML = COLORS.map(c=>`<div class="color-chip${c===icatSelectedColor?' sel':''}" style="background:${c}" onclick="icatSelectedColor='${c}';document.querySelectorAll('#icat-color-picker .color-chip').forEach(x=>x.classList.remove('sel'));this.classList.add('sel')"></div>`).join('');
+  previewIcatIcon();
+  document.getElementById('income-cat-modal').classList.add('open');
+};
+
+window.saveIncomeCat = function() {
+  const name = document.getElementById('icat-name').value.trim();
+  if (!name) return alert('Введіть назву');
+  const icon = document.getElementById('icat-icon').value.trim() || '💰';
+  const cat = { id: editIcatId || uid(), name, icon, color: icatSelectedColor };
+  if (editIcatId) {
+    const idx = db.incomeCats.findIndex(c=>c.id===editIcatId);
+    if (idx !== -1) db.incomeCats[idx] = cat;
+  } else {
+    db.incomeCats.push(cat);
+  }
+  save(); closeModal('income-cat-modal'); populateIncomeCats();
+  document.getElementById('ic-cat').value = cat.id;
+  renderIncome();
+  showToast('ok', `✓ Категорію «${name}» збережено`);
+};
 
 // ── DONUT ──
 function drawDonut(cId,lId,data) {
