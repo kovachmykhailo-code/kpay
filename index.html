@@ -308,6 +308,47 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 /* DEBT BADGE */
 .badge-debt { background:#fff3e0; color:#e65100; font-weight:700; }
 
+/* ── SAVINGS ── */
+.savings-balance-card { background: linear-gradient(135deg,#7c6ef7 0%,#a78bfa 60%,#c4b5fd 100%); border-radius: 18px; padding: 28px 28px 24px; color: #fff; margin-bottom: 18px; position: relative; overflow: hidden; }
+.savings-balance-card::before { content:''; position:absolute; top:-40px; right:-40px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,.08); }
+.savings-balance-card::after { content:''; position:absolute; bottom:-30px; right:60px; width:100px; height:100px; border-radius:50%; background:rgba(255,255,255,.06); }
+.sbc-label { font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; opacity:.8; margin-bottom:8px; }
+.sbc-amount { font-size:42px; font-weight:200; letter-spacing:-.03em; line-height:1; margin-bottom:6px; }
+.sbc-amount b { font-weight:200; }
+.sbc-sub { font-size:13px; opacity:.75; display:flex; gap:18px; flex-wrap:wrap; }
+.sbc-sub span { display:flex; align-items:center; gap:5px; }
+.sbc-edit-btn { position:absolute; top:20px; right:20px; background:rgba(255,255,255,.2); border:none; border-radius:8px; padding:6px 12px; color:#fff; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; transition:background .15s; z-index:1; }
+.sbc-edit-btn:hover { background:rgba(255,255,255,.32); }
+
+/* SAVINGS SVG CHART */
+.sav-chart-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.sav-period-filter { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+
+/* ENVELOPE CARDS */
+.env-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+.env-card { background:var(--white); border:1.5px solid var(--border); border-radius:16px; padding:18px; transition:all .18s; position:relative; overflow:hidden; }
+.env-card:hover { border-color:var(--accent); box-shadow:0 6px 24px rgba(124,110,247,.13); transform:translateY(-2px); }
+.env-card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+.env-icon-wrap { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.env-actions { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+.env-card:hover .env-actions { opacity:1; }
+.env-name { font-size:14px; font-weight:700; margin-bottom:2px; }
+.env-goal-label { font-size:11px; color:var(--text-muted); }
+.env-amounts { margin-bottom:10px; }
+.env-saved { font-size:26px; font-weight:300; letter-spacing:-.02em; }
+.env-goal-row { display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-muted); margin-top:3px; }
+.env-track { height:5px; background:var(--bg); border-radius:20px; overflow:hidden; margin-top:8px; border:1px solid var(--border); }
+.env-fill { height:100%; border-radius:20px; transition:width .7s cubic-bezier(.4,0,.2,1); }
+.env-pct { font-size:11px; color:var(--text-muted); margin-top:4px; text-align:right; }
+.env-add-card { background:var(--bg); border:2px dashed var(--border); border-radius:16px; padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:all .18s; min-height:140px; color:var(--text-muted); font-size:13px; font-weight:600; }
+.env-add-card:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+
+/* SAVINGS BREAKDOWN */
+.sav-breakdown { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+.sav-bd-item { background:var(--white); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.sav-bd-label { font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+.sav-bd-val { font-size:20px; font-weight:300; letter-spacing:-.01em; }
+
 /* EMPLOYEE PROGRESS BARS */
 .emp-prog-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--card-r); padding: 14px 18px; box-shadow: var(--shadow); }
 .emp-prog-row { display: flex; align-items: center; gap: 12px; }
@@ -397,6 +438,10 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
     <div class="nav-item" onclick="goto('analytics')">
       <i class="ph-light ph-chart-line-up" style="font-size:18px;line-height:1"></i>
       Аналітика
+    </div>
+    <div class="nav-item" onclick="goto('savings')">
+      <i class="ph-light ph-piggy-bank" style="font-size:18px;line-height:1"></i>
+      Заощадження
     </div>
     <div class="nav-section-label">Система</div>
     <div class="nav-item" onclick="goto('settings')">
@@ -579,6 +624,72 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
         <div class="card" style="margin-bottom:0"><div class="card-header"><div><div class="card-title">За 12 місяців</div></div><select id="income-cat-filter" onchange="renderIncomeChart()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12px;outline:none;min-height:36px;-webkit-appearance:none;"></select></div><div class="chart-12" id="income-chart-12"></div></div>
       </div>
       <div class="card"><div class="card-header"><div class="card-title">Всі надходження</div></div><div class="table-wrap"><table><thead><tr><th>Категорія</th><th>Опис</th><th>Дата</th><th>Сума</th><th>Дія</th></tr></thead><tbody id="income-tbody"></tbody></table></div></div>
+    </div>
+
+    <!-- SAVINGS -->
+    <div id="pg-savings" class="page">
+      <div class="section-header">
+        <div><div class="section-title">Заощадження</div><div class="section-sub" id="sav-updated">Загальна фінансова картина</div></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <select id="sav-period" onchange="renderSavings()" style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;">
+            <option value="6">6 місяців</option>
+            <option value="12" selected>12 місяців</option>
+            <option value="24">24 місяці</option>
+          </select>
+          <button class="btn btn-primary" onclick="openEnvModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Конверт</button>
+        </div>
+      </div>
+
+      <!-- Загальний баланс -->
+      <div class="savings-balance-card" id="sav-balance-card">
+        <div class="sbc-label">💰 Загальні заощадження</div>
+        <div class="sbc-amount" id="sav-total-amount">0 грн</div>
+        <div class="sbc-sub" id="sav-total-sub"></div>
+        <button class="sbc-edit-btn" onclick="openSavingsBaseModal()">✏ Початковий баланс</button>
+      </div>
+
+      <!-- Breakdown -->
+      <div class="sav-breakdown" id="sav-breakdown" style="margin-bottom:18px;"></div>
+
+      <!-- Chart -->
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-header">
+          <div><div class="card-title">Динаміка заощаджень</div><div class="card-sub">Накопичення за вибраний період</div></div>
+        </div>
+        <div class="sav-chart-wrap">
+          <div id="sav-chart" style="min-width:500px;"></div>
+        </div>
+      </div>
+
+      <!-- Envelopes -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">🧧 Цілі та конверти</div><div class="card-sub">Розподіліть заощадження по цілях</div></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div id="sav-unallocated-badge" style="display:none;font-size:12px;font-weight:600;background:var(--orange-light);color:var(--orange);padding:4px 10px;border-radius:20px;"></div>
+            <button class="btn btn-outline btn-sm" onclick="openEnvModal()">+ Нова ціль</button>
+          </div>
+        </div>
+        <div class="env-grid" id="env-grid"></div>
+      </div>
+
+      <!-- Monthly table -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><div class="card-title">Деталі по місяцях</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Місяць</th>
+              <th>Виплачено (ЗП)</th>
+              <th>Надходження</th>
+              <th>Витрати</th>
+              <th style="color:var(--accent)">Заощаджено</th>
+              <th>Накопичено</th>
+            </tr></thead>
+            <tbody id="sav-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- HISTORY -->
@@ -806,6 +917,88 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   <div class="modal-footer"><button class="btn btn-ghost" onclick="printSlip()">🖨 Друк</button><button class="btn btn-ghost" onclick="closeModal('slip-modal')">Закрити</button></div>
 </div></div>
 
+<!-- SAVINGS BASE MODAL -->
+<div class="overlay" id="sav-base-modal"><div class="modal">
+  <div class="modal-drag-bar" id="sav-base-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title">Початковий баланс</span>
+    <button class="modal-close-x" onclick="closeModal('sav-base-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Вкажіть суму, яка вже є на рахунку до початку відліку K-Pay. Це відправна точка для розрахунку загальних заощаджень.</p>
+    <div class="form-grid">
+      <div class="form-row full"><label>Початковий баланс (грн) *</label><input id="sav-base-input" type="number" placeholder="0" min="0"></div>
+      <div class="form-row full"><label>Примітка</label><input id="sav-base-note" type="text" placeholder="Наприклад: Накопичення до 2024 року"></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('sav-base-modal')">Скасувати</button>
+    <button class="btn btn-primary" onclick="saveSavingsBase()">Зберегти</button>
+  </div>
+</div></div>
+
+<!-- ENVELOPE MODAL -->
+<div class="overlay" id="env-modal"><div class="modal">
+  <div class="modal-drag-bar" id="env-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="env-modal-title">Новий конверт</span>
+    <button class="modal-close-x" onclick="closeModal('env-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row full"><label>Назва цілі *</label><input id="env-name" type="text" placeholder="Відпустка / Авто / Квартира"></div>
+      <div class="form-row"><label>Ціль (грн)</label><input id="env-goal" type="number" placeholder="100000"></div>
+      <div class="form-row"><label>Дата дедлайну</label>
+        <div style="position:relative">
+          <input id="env-deadline-display" type="text" readonly placeholder="Необов'язково" onclick="openCal('env-deadline','env-deadline-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;width:100%">
+          <input id="env-deadline" type="hidden">
+        </div>
+      </div>
+      <div class="form-row"><label>Колір</label><div class="color-picker-row" id="env-color-picker" style="margin-top:4px"></div></div>
+      <div class="form-row full">
+        <label>Іконка — емодзі або SVG код</label>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <textarea id="env-icon" rows="3" oninput="previewEnvIcon()" placeholder="Вставте емодзі 🏖 або SVG код" style="flex:1;resize:vertical;font-size:13px;font-family:monospace;min-height:80px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--text);outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)';this.style.background='#fff'" onblur="this.style.borderColor='var(--border)';this.style.background='var(--bg)'"></textarea>
+          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg);overflow:hidden;" id="env-icon-preview">
+            <span style="font-size:26px;color:var(--text-muted)">?</span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Приймає: 🏖 або &lt;svg xmlns="http://www.w3.org/2000/svg"…&gt;…&lt;/svg&gt;</div>
+      </div>
+      <div class="form-row full"><label>Примітка</label><textarea id="env-note" rows="2" placeholder="Опис цілі"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('env-modal')">Скасувати</button>
+    <button class="btn btn-primary" onclick="saveEnvelope()">Зберегти</button>
+  </div>
+</div></div>
+
+<!-- ENVELOPE ALLOCATE MODAL -->
+<div class="overlay" id="env-alloc-modal"><div class="modal">
+  <div class="modal-drag-bar" id="env-alloc-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="env-alloc-title">Поповнити конверт</span>
+    <button class="modal-close-x" onclick="closeModal('env-alloc-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div id="env-alloc-summary" style="background:var(--bg);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
+    <div class="form-grid">
+      <div class="form-row full"><label>Сума для перекладання (грн) *</label><input id="env-alloc-amount" type="number" placeholder="0" min="0"></div>
+      <div class="form-row full"><label>Примітка</label><input id="env-alloc-note" type="text" placeholder="Необов'язково"></div>
+    </div>
+    <!-- Транзакції конверту -->
+    <div style="margin-top:16px;" id="env-alloc-txs-wrap">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Попередні транзакції</div>
+      <div id="env-alloc-txs"></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('env-alloc-modal')">Закрити</button>
+    <button class="btn btn-primary" onclick="saveEnvAlloc()">Покласти в конверт</button>
+  </div>
+</div></div>
+
 <!-- CUSTOM CALENDAR -->
 <div class="cal-overlay" id="cal-overlay" onclick="if(event.target===this)closeCal()">
   <div class="cal-box">
@@ -915,7 +1108,7 @@ const auth = firebase.auth();
 const DOCREF = db_fs.collection('kpay').doc('main');
 
 // ── STATE ──
-let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{} };
+let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{} };
 let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#7c6ef7', saveTimer=null, isOnline=true;
 const COLORS=['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4','#8b5cf6','#14b8a6'];
@@ -944,6 +1137,8 @@ async function loadFromFirebase() {
       const loaded = snap.data().db;
       db = { ...db, ...loaded };
       if (!db.budgetLimits) db.budgetLimits = {};
+      if (!db.envelopes) db.envelopes = [];
+      if (db.savingsBase === undefined) db.savingsBase = 0;
     } else {
       seedDemoData();
       await saveToFirebase();
@@ -1052,7 +1247,7 @@ window.handleTopbarSearch = function(q) {
 // ── NAV ──
 window.openSidebar = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); };
 window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); };
-const PT={dashboard:'Дашборд',employees:'Співробітники',payroll:'Нарахування',budget:'Бюджет',income:'Надходження',history:'Історія',settings:'Налаштування'};
+const PT={dashboard:'Дашборд',employees:'Співробітники',payroll:'Нарахування',budget:'Бюджет',income:'Надходження',savings:'Заощадження',history:'Історія',settings:'Налаштування'};
 window.goto = function(page) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1060,12 +1255,12 @@ window.goto = function(page) {
   document.getElementById('pg-'+page).classList.add('active');
   document.getElementById('page-title').textContent=PT[page]||page;
   const nItems=[...document.querySelectorAll('.nav-item')];
-  const nMap={dashboard:0,employees:1,payroll:2,budget:3,income:4,history:5,analytics:6,settings:7};
+  const nMap={dashboard:0,employees:1,payroll:2,budget:3,income:4,savings:5,history:6,analytics:7,settings:8};
   if(nItems[nMap[page]]) nItems[nMap[page]].classList.add('active');
   const bnMap={dashboard:'bn-dashboard',payroll:'bn-payroll',budget:'bn-budget',income:'bn-income',employees:'bn-employees'};
   if(bnMap[page]) { const el=document.getElementById(bnMap[page]); if(el) el.classList.add('active'); }
   window.closeSidebar();
-  ({dashboard:renderDashboard,employees:renderEmployees,payroll:initPayroll,budget:initBudget,income:renderIncome,history:initHistory,analytics:initAnalytics,settings:loadSettings}[page]||Function)();
+  ({dashboard:renderDashboard,employees:renderEmployees,payroll:initPayroll,budget:initBudget,income:renderIncome,savings:renderSavings,history:initHistory,analytics:initAnalytics,settings:loadSettings}[page]||Function)();
   updatePendingBadge();
 };
 function updatePendingBadge() {
@@ -1621,6 +1816,12 @@ window.previewBcIcon = function() {
   prev.innerHTML = val ? renderIcon(val, '28px') : '<span style="font-size:26px;color:var(--text-muted)">?</span>';
 };
 
+window.previewEnvIcon = function() {
+  const val = document.getElementById('env-icon').value.trim();
+  const prev = document.getElementById('env-icon-preview');
+  prev.innerHTML = val ? renderIcon(val, '28px') : '<span style="font-size:26px;color:var(--text-muted)">?</span>';
+};
+
 window.openBudgetModal = function(id) {
   editBudgetId=id||null;
   const cat=id?db.budgetCats.find(c=>c.id===id):null;
@@ -2007,6 +2208,391 @@ function renderPayModalStats() {
   renderStats(null);
 }
 
+// ── SAVINGS PAGE ──
+
+// Допоміжна: повертає суму виплат по всіх співробітниках за місяць
+function getSavPayrollPaid(month) {
+  return db.payroll
+    .filter(p => p.month === month)
+    .reduce((s, p) => s + ((p.payments||[]).reduce((ss,pay)=>ss+(pay.amount||0),0)), 0);
+}
+
+// Допоміжна: сума надходжень за місяць
+function getSavIncome(month) {
+  return db.incomes.filter(i => i.date && i.date.startsWith(month)).reduce((s,i)=>s+(i.amount||0),0);
+}
+
+// Допоміжна: сума витрат за місяць
+function getSavExpenses(month) {
+  return db.expenses.filter(e => e.date && e.date.startsWith(month)).reduce((s,e)=>s+(e.amount||0),0);
+}
+
+// Заощаджено за місяць = виплачено ЗП + надходження - витрати
+function getSavMonthSaved(month) {
+  return getSavPayrollPaid(month) + getSavIncome(month) - getSavExpenses(month);
+}
+
+// Загальна сума в конвертах
+function getSavEnvelopesTotal() {
+  return (db.envelopes||[]).reduce((s,e)=>s+((e.transactions||[]).reduce((ss,t)=>ss+t.amount,0)),0);
+}
+
+window.renderSavings = function() {
+  if (!db.envelopes) db.envelopes = [];
+
+  const periods = parseInt(document.getElementById('sav-period')?.value)||12;
+  const now = new Date();
+  const months = [];
+  for (let i=periods-1; i>=0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+
+  // Розрахунок кумулятивних заощаджень
+  let cumulative = db.savingsBase || 0;
+  const monthData = months.map(m => {
+    const paid = getSavPayrollPaid(m);
+    const income = getSavIncome(m);
+    const expenses = getSavExpenses(m);
+    const saved = paid + income - expenses;
+    cumulative += saved;
+    return { month: m, paid, income, expenses, saved, cumulative };
+  });
+
+  const lastData = monthData[monthData.length - 1];
+  const totalSaved = lastData ? lastData.cumulative : (db.savingsBase || 0);
+
+  // Баланс-картка
+  const totalEnvelopes = getSavEnvelopesTotal();
+  const freeBalance = Math.max(0, totalSaved - totalEnvelopes);
+
+  document.getElementById('sav-total-amount').textContent =
+    Number(totalSaved).toLocaleString('uk-UA',{maximumFractionDigits:0}) + ' ' + (db.settings.currency||'грн');
+
+  const periodPaid   = monthData.reduce((s,d)=>s+d.paid,0);
+  const periodIncome = monthData.reduce((s,d)=>s+d.income,0);
+  const periodExp    = monthData.reduce((s,d)=>s+d.expenses,0);
+  document.getElementById('sav-total-sub').innerHTML =
+    `<span>💳 ЗП: ${fmt(periodPaid)}</span>
+     <span>📈 Дохід: ${fmt(periodIncome)}</span>
+     <span>📤 Витрати: ${fmt(periodExp)}</span>`;
+
+  // Breakdown
+  document.getElementById('sav-breakdown').innerHTML = `
+    <div class="sav-bd-item">
+      <div class="sav-bd-label">Початковий баланс</div>
+      <div class="sav-bd-val" style="color:var(--accent)">${fmt(db.savingsBase||0)}</div>
+    </div>
+    <div class="sav-bd-item">
+      <div class="sav-bd-label">Виплачено ЗП (${periods} міс.)</div>
+      <div class="sav-bd-val" style="color:var(--blue)">${fmt(periodPaid)}</div>
+    </div>
+    <div class="sav-bd-item">
+      <div class="sav-bd-label">Надходження (${periods} міс.)</div>
+      <div class="sav-bd-val" style="color:var(--green)">${fmt(periodIncome)}</div>
+    </div>
+    <div class="sav-bd-item">
+      <div class="sav-bd-label">Витрачено (${periods} міс.)</div>
+      <div class="sav-bd-val" style="color:var(--red)">−${fmt(periodExp)}</div>
+    </div>
+    <div class="sav-bd-item">
+      <div class="sav-bd-label">У конвертах</div>
+      <div class="sav-bd-val" style="color:var(--orange)">${fmt(totalEnvelopes)}</div>
+    </div>
+    <div class="sav-bd-item" style="border-color:var(--accent)">
+      <div class="sav-bd-label">Вільні кошти</div>
+      <div class="sav-bd-val" style="color:var(--accent)">${fmt(freeBalance)}</div>
+    </div>`;
+
+  // Нерозподілений залишок badge
+  const unallocBadge = document.getElementById('sav-unallocated-badge');
+  if (freeBalance > 0 && (db.envelopes||[]).length > 0) {
+    unallocBadge.style.display = 'inline-block';
+    unallocBadge.textContent = 'Нерозподілено: ' + fmt(freeBalance);
+  } else {
+    unallocBadge.style.display = 'none';
+  }
+
+  // SVG chart — area з кумулятивними заощадженнями
+  const W = Math.max(500, months.length * 52);
+  const H = 200;
+  const PAD = {top:20,right:20,bottom:28,left:70};
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top - PAD.bottom;
+
+  const maxVal = Math.max(...monthData.map(d=>d.cumulative), db.savingsBase||0, 1);
+  const minVal = Math.min(...monthData.map(d=>d.cumulative), db.savingsBase||0, 0);
+  const range = maxVal - minVal || 1;
+
+  function gx(i) { return PAD.left + (i / Math.max(months.length-1,1)) * cW; }
+  function gy(v) { return PAD.top + cH - ((v - minVal) / range) * cH; }
+
+  // Y-grid
+  let grid='', yTicks=4;
+  for(let i=0;i<=yTicks;i++){
+    const v = minVal + (range/yTicks)*i;
+    const y = gy(v);
+    const lbl = Math.abs(v)>=1000 ? (Math.round(v/1000))+'к' : Math.round(v).toString();
+    grid+=`<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#e8e9ef" stroke-width="1"/>
+           <text x="${PAD.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#8b8fa8">${lbl}</text>`;
+  }
+
+  // X-labels
+  let xLabels='';
+  months.forEach((m,i)=>{
+    if(months.length<=12||i%2===0)
+      xLabels+=`<text x="${gx(i)}" y="${H-6}" text-anchor="middle" font-size="10" fill="#8b8fa8">${monthShort(m)}</text>`;
+  });
+
+  // Area path
+  const zero = gy(Math.max(0, minVal));
+  const pts = monthData.map((d,i)=>`${gx(i)},${gy(d.cumulative)}`).join(' ');
+  const areaD = `M${gx(0)},${zero} `+monthData.map((d,i)=>`L${gx(i)},${gy(d.cumulative)}`).join(' ')+` L${gx(months.length-1)},${zero} Z`;
+
+  // Bar chart for monthly savings (under line)
+  let bars='';
+  const barW = Math.max(4, cW/months.length*0.5);
+  monthData.forEach((d,i)=>{
+    if(d.saved===0) return;
+    const barH = Math.abs(d.saved/range*cH);
+    const bx = gx(i) - barW/2;
+    const by = d.saved>0 ? gy(d.saved+Math.max(0,minVal)) : gy(Math.max(0,minVal));
+    const color = d.saved>=0 ? '#22c55e' : '#ef4444';
+    bars+=`<rect x="${bx}" y="${by}" width="${barW}" height="${Math.max(2,barH)}" fill="${color}" opacity="0.35" rx="2">
+      <title>${monthShort(d.month)}: ${d.saved>=0?'+':''}${fmt(d.saved)}</title>
+    </rect>`;
+  });
+
+  // Circles with tooltip
+  let circles='';
+  monthData.forEach((d,i)=>{
+    circles+=`<circle cx="${gx(i)}" cy="${gy(d.cumulative)}" r="3.5" fill="#7c6ef7" stroke="white" stroke-width="1.5">
+      <title>${monthName(d.month)} ${d.month.split('-')[0]}: ${fmt(d.cumulative)}</title>
+    </circle>`;
+  });
+
+  document.getElementById('sav-chart').innerHTML=`
+    <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="savGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7c6ef7" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#7c6ef7" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      ${grid}${xLabels}${bars}
+      <path d="${areaD}" fill="url(#savGrad)"/>
+      <polyline points="${pts}" fill="none" stroke="#7c6ef7" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${circles}
+    </svg>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;padding:0 4px">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:12px;height:3px;background:#7c6ef7;border-radius:2px"></div>Накопичено</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#22c55e;opacity:.7"></div>Заощаджено за місяць (+)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#ef4444;opacity:.7"></div>Дефіцит за місяць (−)</div>
+    </div>`;
+
+  // Envelopes grid
+  renderEnvelopes(totalSaved);
+
+  // Monthly table
+  const tbody = document.getElementById('sav-tbody');
+  let cumRun = db.savingsBase || 0;
+  tbody.innerHTML = monthData.map(d => {
+    cumRun += d.saved;
+    return `<tr>
+      <td style="font-weight:600">${monthName(d.month)} <span style="color:var(--text-muted);font-weight:400">${d.month.split('-')[0]}</span></td>
+      <td style="color:var(--blue)">${d.paid>0?fmt(d.paid):'—'}</td>
+      <td style="color:var(--green)">${d.income>0?fmt(d.income):'—'}</td>
+      <td style="color:var(--red)">${d.expenses>0?'−'+fmt(d.expenses):'—'}</td>
+      <td style="font-weight:600;color:${d.saved>=0?'var(--green)':'var(--red)'}">${d.saved>=0?'+':''}${fmt(d.saved)}</td>
+      <td style="font-weight:600;color:var(--accent)">${fmt(cumRun)}</td>
+    </tr>`;
+  }).reverse().join(''); // newest first
+};
+
+function renderEnvelopes(totalSaved) {
+  const grid = document.getElementById('env-grid');
+  if (!(db.envelopes||[]).length) {
+    grid.innerHTML = `<div class="env-add-card" onclick="openEnvModal()">
+      <i class="ph-light ph-piggy-bank" style="font-size:32px"></i>
+      <span>Додати першу ціль</span>
+      <span style="font-size:11px;font-weight:400">Розподіліть заощадження по конвертах</span>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = db.envelopes.map(env => {
+    const saved = (env.transactions||[]).reduce((s,t)=>s+t.amount,0);
+    const goal = env.goal || 0;
+    const pct = goal>0 ? Math.min(100, Math.round((saved/goal)*100)) : 0;
+    const color = env.color || '#7c6ef7';
+    const deadlineStr = env.deadline ? ` · до ${new Date(env.deadline+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short',year:'numeric'})}` : '';
+    return `<div class="env-card">
+      <div class="env-card-top">
+        <div class="env-icon-wrap" style="background:${color}22">${renderIcon(env.icon||'🎯','24px')}</div>
+        <div class="env-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEnvModal('${env.id}')">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteEnvelope('${env.id}')">✕</button>
+        </div>
+      </div>
+      <div class="env-name">${env.name}</div>
+      ${goal>0?`<div class="env-goal-label">Ціль: ${fmt(goal)}${deadlineStr}</div>`:'<div class="env-goal-label">Без цілі${deadlineStr}</div>'}
+      <div class="env-amounts" style="margin-top:10px">
+        <div class="env-saved" style="color:${color}">${fmt(saved)}</div>
+        ${goal>0?`<div class="env-goal-row"><span>${pct}% виконано</span><span>залишилось ${fmt(Math.max(0,goal-saved))}</span></div>`:''}
+      </div>
+      ${goal>0?`<div class="env-track"><div class="env-fill" style="width:${pct}%;background:${color}"></div></div>`:''}
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:12px" onclick="openEnvAllocModal('${env.id}')">💸 Поповнити</button>
+    </div>`;
+  }).join('') + `<div class="env-add-card" onclick="openEnvModal()">
+    <i class="ph-light ph-plus" style="font-size:26px"></i>
+    <span>Нова ціль</span>
+  </div>`;
+}
+
+// ── SAVINGS BASE MODAL ──
+window.openSavingsBaseModal = function() {
+  document.getElementById('sav-base-input').value = db.savingsBase || 0;
+  document.getElementById('sav-base-note').value = db.savingsBaseNote || '';
+  document.getElementById('sav-base-modal').classList.add('open');
+};
+
+window.saveSavingsBase = function() {
+  const val = parseFloat(document.getElementById('sav-base-input').value) || 0;
+  db.savingsBase = val;
+  db.savingsBaseNote = document.getElementById('sav-base-note').value.trim();
+  save(); closeModal('sav-base-modal'); renderSavings();
+  showToast('ok', '✓ Початковий баланс збережено');
+};
+
+// ── ENVELOPE CRUD ──
+let editEnvId = null;
+
+window.openEnvModal = function(id) {
+  editEnvId = id || null;
+  const env = id ? (db.envelopes||[]).find(e=>e.id===id) : null;
+  document.getElementById('env-modal-title').textContent = env ? 'Редагувати ціль' : 'Новий конверт';
+  document.getElementById('env-name').value = env?.name || '';
+  document.getElementById('env-goal').value = env?.goal || '';
+  document.getElementById('env-icon').value = env?.icon || '';
+  document.getElementById('env-note').value = env?.note || '';
+  document.getElementById('env-deadline').value = env?.deadline || '';
+  document.getElementById('env-deadline-display').value = env?.deadline
+    ? new Date(env.deadline+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'}) : '';
+  selectedColor = env?.color || '#7c6ef7';
+  const cp = document.getElementById('env-color-picker');
+  cp.innerHTML = COLORS.map(c=>`<div class="color-chip${c===selectedColor?' sel':''}" style="background:${c}" onclick="selectedColor='${c}';document.querySelectorAll('#env-color-picker .color-chip').forEach(x=>x.classList.remove('sel'));this.classList.add('sel')"></div>`).join('');
+  previewEnvIcon();
+  document.getElementById('env-modal').classList.add('open');
+};
+
+window.saveEnvelope = function() {
+  const name = document.getElementById('env-name').value.trim();
+  if (!name) return alert('Введіть назву цілі');
+  if (!db.envelopes) db.envelopes = [];
+  const env = {
+    id: editEnvId || uid(),
+    name,
+    goal: parseFloat(document.getElementById('env-goal').value) || 0,
+    icon: document.getElementById('env-icon').value.trim() || '🎯',
+    color: selectedColor || '#7c6ef7',
+    deadline: document.getElementById('env-deadline').value || '',
+    note: document.getElementById('env-note').value.trim(),
+  };
+  if (editEnvId) {
+    const idx = db.envelopes.findIndex(e=>e.id===editEnvId);
+    if (idx!==-1) {
+      env.transactions = db.envelopes[idx].transactions || [];
+      db.envelopes[idx] = env;
+    }
+  } else {
+    env.transactions = [];
+    db.envelopes.push(env);
+  }
+  save(); closeModal('env-modal'); renderSavings();
+  showToast('ok', `✓ Конверт «${name}» збережено`);
+};
+
+window.deleteEnvelope = function(id) {
+  if (!confirm('Видалити цей конверт?')) return;
+  db.envelopes = (db.envelopes||[]).filter(e=>e.id!==id);
+  save(); renderSavings();
+};
+
+// ── ENVELOPE ALLOCATE ──
+let currentAllocEnvId = null;
+
+window.openEnvAllocModal = function(envId) {
+  currentAllocEnvId = envId;
+  const env = (db.envelopes||[]).find(e=>e.id===envId);
+  if (!env) return;
+  const saved = (env.transactions||[]).reduce((s,t)=>s+t.amount,0);
+  const goal = env.goal || 0;
+  const remaining = goal>0 ? Math.max(0, goal-saved) : null;
+
+  // Get current free savings
+  const now = new Date();
+  const months = [];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}
+  let totalSaved = db.savingsBase || 0;
+  months.forEach(m=>{totalSaved+=getSavMonthSaved(m);});
+  const totalEnv = getSavEnvelopesTotal();
+  const free = Math.max(0, totalSaved - totalEnv);
+
+  document.getElementById('env-alloc-title').textContent = `Поповнити: ${env.name}`;
+  document.getElementById('env-alloc-amount').value = '';
+  document.getElementById('env-alloc-note').value = '';
+  document.getElementById('env-alloc-summary').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:14px">
+      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">В конверті</div><div style="font-size:17px;font-weight:300;color:var(--accent)">${fmt(saved)}</div></div>
+      ${goal>0?`<div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase">Ціль</div><div style="font-size:17px;font-weight:300">${fmt(goal)}</div></div>
+      <div><div style="font-size:10px;color:var(--orange);font-weight:600;text-transform:uppercase">Залишилось</div><div style="font-size:17px;font-weight:300;color:var(--orange)">${fmt(remaining)}</div></div>`:''}
+      <div style="margin-left:auto"><div style="font-size:10px;color:var(--green);font-weight:600;text-transform:uppercase">Вільних коштів</div><div style="font-size:17px;font-weight:300;color:var(--green)">${fmt(free)}</div></div>
+    </div>`;
+
+  // Transactions list
+  renderEnvAllocTxs(env);
+  document.getElementById('env-alloc-modal').classList.add('open');
+};
+
+function renderEnvAllocTxs(env) {
+  const txs = [...(env.transactions||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const el = document.getElementById('env-alloc-txs');
+  if (!txs.length) { el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px">Транзакцій поки немає</div>`; return; }
+  el.innerHTML = txs.map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+    <div>
+      <span style="font-weight:600;color:${t.amount>=0?'var(--green)':'var(--red)'}">${t.amount>=0?'+':''}${fmt(t.amount)}</span>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:8px">${new Date(t.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short'})}</span>
+      ${t.note?`<span style="font-size:11px;color:var(--text-muted)"> · ${t.note}</span>`:''}
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="deleteEnvTx('${env.id}','${t.id}')">✕</button>
+  </div>`).join('');
+}
+
+window.saveEnvAlloc = function() {
+  const amount = parseFloat(document.getElementById('env-alloc-amount').value)||0;
+  if (!amount) return showToast('err','⚠ Вкажіть суму');
+  const note = document.getElementById('env-alloc-note').value.trim();
+  const env = (db.envelopes||[]).find(e=>e.id===currentAllocEnvId);
+  if (!env) return;
+  if (!env.transactions) env.transactions = [];
+  env.transactions.push({ id:uid(), amount, date:new Date().toISOString().slice(0,10), note });
+  save(); renderEnvAllocTxs(env);
+  document.getElementById('env-alloc-amount').value = '';
+  document.getElementById('env-alloc-note').value = '';
+  renderSavings();
+  showToast('ok', `✓ ${fmt(amount)} додано до «${env.name}»`);
+  // Update summary
+  openEnvAllocModal(currentAllocEnvId);
+  document.getElementById('env-alloc-modal').classList.add('open');
+};
+
+window.deleteEnvTx = function(envId, txId) {
+  const env = (db.envelopes||[]).find(e=>e.id===envId);
+  if (!env) return;
+  env.transactions = (env.transactions||[]).filter(t=>t.id!==txId);
+  save(); renderEnvAllocTxs(env); renderSavings();
+  showToast('ok','✓ Транзакцію видалено');
+};
+
 // ── ANALYTICS PAGE ──
 const AN_COLORS = ['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4'];
 let anActiveEmps = new Set();
@@ -2285,7 +2871,7 @@ window.saveSettings = function() {
 window.resetSettings = function() { db.settings={pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}; save(); loadSettings(); showToast('ok','✓ Скинуто до стандартних'); };
 window.exportData = function() { const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='kpay_backup_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); };
 window.importData = function(e) { const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(d.employees&&d.payroll){db=d;saveToFirebase();renderDashboard();showToast('ok','✓ Дані імпортовано');} }catch{alert('Помилка файлу');} }; r.readAsText(file); };
-window.clearData = function() { db={employees:[],payroll:[],budgetCats:[],expenses:[],incomeCats:[],incomes:[],budgetLimits:{},settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}}; saveToFirebase(); goto('dashboard'); };
+window.clearData = function() { db={employees:[],payroll:[],budgetCats:[],expenses:[],incomeCats:[],incomes:[],envelopes:[],savingsBase:0,savingsBaseNote:'',budgetLimits:{},settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}}; saveToFirebase(); goto('dashboard'); };
 window.clearPayrollOnly = function() { if(!confirm('Видалити всі записи нарахувань та історію?')) return; db.payroll=[]; save(); showToast('ok','✓ Нарахування очищено'); renderDashboard(); updatePendingBadge(); };
 window.clearOrphanPayroll = function() {
   const before=db.payroll.length;
