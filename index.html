@@ -443,6 +443,10 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       <i class="ph-light ph-piggy-bank" style="font-size:18px;line-height:1"></i>
       Заощадження
     </div>
+    <div class="nav-item" onclick="goto('inventory')">
+      <i class="ph-light ph-archive-box" style="font-size:18px;line-height:1"></i>
+      Інвентаризація
+    </div>
     <div class="nav-section-label">Система</div>
     <div class="nav-item" onclick="goto('settings')">
       <i class="ph-light ph-sliders-horizontal" style="font-size:18px;line-height:1"></i>
@@ -765,6 +769,46 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       </div>
     </div>
 
+    <!-- INVENTORY -->
+    <div id="pg-inventory" class="page">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Інвентаризація</div>
+          <div class="section-sub">Цінне майно, обладнання та матеріали</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select id="inv-cat-filter" onchange="renderInventory()" style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;">
+            <option value="">Всі категорії</option>
+          </select>
+          <button class="btn btn-primary" onclick="openInvModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Додати позицію</button>
+        </div>
+      </div>
+
+      <!-- Статистика -->
+      <div class="stats-grid" id="inv-stats" style="margin-bottom:18px;"></div>
+
+      <!-- Таблиця -->
+      <div class="card" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Назва</th>
+                <th>Категорія</th>
+                <th>Кількість</th>
+                <th>Ціна за од.</th>
+                <th>Загальна вартість</th>
+                <th>Стан</th>
+                <th>Дата</th>
+                <th>Дія</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div id="pg-settings" class="page">
       <div class="section-header"><div class="section-title">Налаштування</div></div>
@@ -1069,6 +1113,58 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   </div>
 </div></div>
 
+<!-- INVENTORY MODAL -->
+<div class="overlay" id="inv-modal"><div class="modal">
+  <div class="modal-drag-bar" id="inv-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title" id="inv-modal-title">Нова позиція</span>
+    <button class="modal-close-x" onclick="closeModal('inv-modal')">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row full"><label>Назва *</label><input id="inv-name" type="text" placeholder="Ноутбук MacBook Pro"></div>
+      <div class="form-row"><label>Категорія</label>
+        <div style="display:flex;gap:8px;">
+          <input id="inv-cat" type="text" placeholder="Техніка / Меблі / Інше" list="inv-cat-list" style="flex:1">
+          <datalist id="inv-cat-list"></datalist>
+        </div>
+      </div>
+      <div class="form-row"><label>Стан</label>
+        <select id="inv-condition">
+          <option value="new">✨ Новий</option>
+          <option value="good">👍 Добрий</option>
+          <option value="fair">⚠️ Задовільний</option>
+          <option value="poor">🔧 Потребує ремонту</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Кількість *</label><input id="inv-qty" type="number" placeholder="1" min="0.01" step="0.01" value="1" oninput="calcInvTotal()"></div>
+      <div class="form-row"><label>Ціна за одиницю</label><input id="inv-price" type="number" placeholder="0" min="0" oninput="calcInvTotal()"></div>
+      <div class="form-row"><label>Дата придбання</label>
+        <div style="position:relative">
+          <input id="inv-date-display" type="text" readonly placeholder="Оберіть дату" onclick="openCal('inv-date','inv-date-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:44px;width:100%">
+          <input id="inv-date" type="hidden">
+        </div>
+      </div>
+      <div class="form-row"><label>Відповідальна особа</label>
+        <select id="inv-person">
+          <option value="">— не призначено —</option>
+        </select>
+      </div>
+      <div class="form-row full">
+        <div style="background:var(--accent-light);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;font-weight:600;color:var(--accent)">Загальна вартість:</span>
+          <span id="inv-total-preview" style="font-size:18px;font-weight:700;color:var(--accent)">0 грн</span>
+        </div>
+      </div>
+      <div class="form-row full"><label>Примітка</label><textarea id="inv-note" rows="2" placeholder="Серійний номер, місце зберігання тощо"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('inv-modal')">Скасувати</button>
+    <button class="btn btn-primary" onclick="saveInvItem()">Зберегти</button>
+  </div>
+</div></div>
+
 <div class="overlay" id="budget-modal"><div class="modal">
   <div class="modal-drag-bar" id="budget-modal-bar">
     <div style="width:28px"></div>
@@ -1158,7 +1254,7 @@ const auth = firebase.auth();
 const DOCREF = db_fs.collection('kpay').doc('main');
 
 // ── STATE ──
-let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{} };
+let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], inventory:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{} };
 let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#7c6ef7', saveTimer=null, isOnline=true;
 const COLORS=['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4','#8b5cf6','#14b8a6'];
@@ -1188,6 +1284,7 @@ async function loadFromFirebase() {
       db = { ...db, ...loaded };
       if (!db.budgetLimits) db.budgetLimits = {};
       if (!db.envelopes) db.envelopes = [];
+      if (!db.inventory) db.inventory = [];
       if (db.savingsBase === undefined) db.savingsBase = 0;
     } else {
       seedDemoData();
@@ -1297,7 +1394,7 @@ window.handleTopbarSearch = function(q) {
 // ── NAV ──
 window.openSidebar = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); };
 window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); };
-const PT={dashboard:'Дашборд',employees:'Співробітники',payroll:'Нарахування',budget:'Бюджет',income:'Надходження',savings:'Заощадження',history:'Історія',settings:'Налаштування'};
+const PT={dashboard:'Дашборд',employees:'Співробітники',payroll:'Нарахування',budget:'Бюджет',income:'Надходження',savings:'Заощадження',history:'Історія',settings:'Налаштування',inventory:'Інвентаризація',analytics:'Аналітика'};
 window.goto = function(page) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1305,12 +1402,12 @@ window.goto = function(page) {
   document.getElementById('pg-'+page).classList.add('active');
   document.getElementById('page-title').textContent=PT[page]||page;
   const nItems=[...document.querySelectorAll('.nav-item')];
-  const nMap={dashboard:0,employees:1,payroll:2,budget:3,income:4,savings:5,history:6,analytics:7,settings:8};
+  const nMap={dashboard:0,employees:1,payroll:2,budget:3,income:4,savings:5,history:6,analytics:7,inventory:8,settings:9};
   if(nItems[nMap[page]]) nItems[nMap[page]].classList.add('active');
   const bnMap={dashboard:'bn-dashboard',payroll:'bn-payroll',budget:'bn-budget',income:'bn-income',employees:'bn-employees'};
   if(bnMap[page]) { const el=document.getElementById(bnMap[page]); if(el) el.classList.add('active'); }
   window.closeSidebar();
-  ({dashboard:renderDashboard,employees:renderEmployees,payroll:initPayroll,budget:initBudget,income:renderIncome,savings:renderSavings,history:initHistory,analytics:initAnalytics,settings:loadSettings}[page]||Function)();
+  ({dashboard:renderDashboard,employees:renderEmployees,payroll:initPayroll,budget:initBudget,income:renderIncome,savings:renderSavings,history:initHistory,analytics:initAnalytics,inventory:renderInventory,settings:loadSettings}[page]||Function)();
   updatePendingBadge();
 };
 function updatePendingBadge() {
@@ -2675,6 +2772,126 @@ window.deleteEnvTx = function(envId, txId) {
   env.transactions = (env.transactions||[]).filter(t=>t.id!==txId);
   save(); renderEnvAllocTxs(env); renderSavings();
   showToast('ok','✓ Транзакцію видалено');
+};
+
+// ── INVENTORY ──
+let editInvId = null;
+const INV_CONDITIONS = { new:'✨ Новий', good:'👍 Добрий', fair:'⚠️ Задовільний', poor:'🔧 Ремонт' };
+const INV_CONDITION_BADGES = { new:'badge-green', good:'badge-blue', fair:'badge-yellow', poor:'badge-red' };
+
+window.openInvModal = function(id) {
+  if (!db.inventory) db.inventory = [];
+  editInvId = id || null;
+  const item = id ? db.inventory.find(i=>i.id===id) : null;
+  document.getElementById('inv-modal-title').textContent = item ? 'Редагувати позицію' : 'Нова позиція';
+  document.getElementById('inv-name').value = item?.name || '';
+  document.getElementById('inv-cat').value = item?.category || '';
+  document.getElementById('inv-condition').value = item?.condition || 'good';
+  document.getElementById('inv-qty').value = item?.qty ?? 1;
+  document.getElementById('inv-price').value = item?.price ?? '';
+  document.getElementById('inv-note').value = item?.note || '';
+  document.getElementById('inv-date').value = item?.date || '';
+  document.getElementById('inv-date-display').value = item?.date ? new Date(item.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'}) : '';
+  // Заповнення datalist категоріями
+  const cats = [...new Set((db.inventory||[]).map(i=>i.category).filter(Boolean))];
+  document.getElementById('inv-cat-list').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
+  // Відповідальна особа
+  const personSel = document.getElementById('inv-person');
+  personSel.innerHTML = '<option value="">— не призначено —</option>' + db.employees.filter(e=>e.status==='active').map(e=>`<option value="${e.id}" ${item?.personId===e.id?'selected':''}>${e.name}</option>`).join('');
+  calcInvTotal();
+  document.getElementById('inv-modal').classList.add('open');
+};
+
+window.calcInvTotal = function() {
+  const qty = parseFloat(document.getElementById('inv-qty').value) || 0;
+  const price = parseFloat(document.getElementById('inv-price').value) || 0;
+  const total = qty * price;
+  document.getElementById('inv-total-preview').textContent = total.toLocaleString('uk-UA',{maximumFractionDigits:2}) + ' ' + (db.settings.currency||'грн');
+};
+
+window.saveInvItem = function() {
+  if (!db.inventory) db.inventory = [];
+  const name = document.getElementById('inv-name').value.trim();
+  if (!name) { document.getElementById('inv-name').style.borderColor='var(--red)'; setTimeout(()=>document.getElementById('inv-name').style.borderColor='',1500); return; }
+  const qty = parseFloat(document.getElementById('inv-qty').value) || 1;
+  const price = parseFloat(document.getElementById('inv-price').value) || 0;
+  const item = {
+    id: editInvId || uid(),
+    name,
+    category: document.getElementById('inv-cat').value.trim() || 'Інше',
+    condition: document.getElementById('inv-condition').value,
+    qty,
+    price,
+    total: Math.round(qty * price * 100) / 100,
+    date: document.getElementById('inv-date').value || '',
+    personId: document.getElementById('inv-person').value || '',
+    note: document.getElementById('inv-note').value.trim(),
+  };
+  if (editInvId) {
+    const idx = db.inventory.findIndex(i=>i.id===editInvId);
+    if (idx!==-1) db.inventory[idx] = item; else db.inventory.push(item);
+  } else {
+    db.inventory.push(item);
+  }
+  save(); closeModal('inv-modal'); renderInventory();
+  showToast('ok', `✓ «${name}» збережено`);
+};
+
+window.deleteInvItem = function(id) {
+  if (!confirm('Видалити цю позицію?')) return;
+  db.inventory = (db.inventory||[]).filter(i=>i.id!==id);
+  save(); renderInventory();
+};
+
+window.renderInventory = function() {
+  if (!db.inventory) db.inventory = [];
+  const catFilter = document.getElementById('inv-cat-filter')?.value || '';
+
+  // Оновлення фільтра категорій
+  const allCats = [...new Set(db.inventory.map(i=>i.category).filter(Boolean))].sort();
+  const catSel = document.getElementById('inv-cat-filter');
+  if (catSel) {
+    const prev = catSel.value;
+    catSel.innerHTML = '<option value="">Всі категорії</option>' + allCats.map(c=>`<option value="${c}" ${c===prev?'selected':''}>${c}</option>`).join('');
+  }
+
+  const items = catFilter ? db.inventory.filter(i=>i.category===catFilter) : db.inventory;
+  const totalItems = items.length;
+  const totalQty = items.reduce((s,i)=>s+(i.qty||0),0);
+  const totalVal = items.reduce((s,i)=>s+(i.total||0),0);
+  const cats = [...new Set(items.map(i=>i.category))].length;
+
+  // Статистика
+  document.getElementById('inv-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Позицій</div><div class="stat-value">${totalItems}</div><span class="stat-change neutral">${cats} категор.</span></div>
+    <div class="stat-card"><div class="stat-label">Одиниць</div><div class="stat-value">${totalQty.toLocaleString('uk-UA',{maximumFractionDigits:2})}</div><span class="stat-change neutral">всього</span></div>
+    <div class="stat-card"><div class="stat-label">Загальна вартість</div><div class="stat-value" style="font-size:19px">${fmt(totalVal)}</div><span class="stat-change up">активи</span></div>`;
+
+  // Таблиця
+  const tbody = document.getElementById('inv-tbody');
+  if (!items.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">Додайте першу позицію майна</div></td></tr>`;
+    return;
+  }
+
+  // Сортування — спочатку по категорії, потім по назві
+  const sorted = [...items].sort((a,b)=> (a.category||'').localeCompare(b.category||'') || a.name.localeCompare(b.name));
+  tbody.innerHTML = sorted.map(item => {
+    const person = item.personId ? db.employees.find(e=>e.id===item.personId) : null;
+    const condBadge = INV_CONDITION_BADGES[item.condition] || 'badge-purple';
+    const condLabel = INV_CONDITIONS[item.condition] || item.condition;
+    const dateStr = item.date ? new Date(item.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short',year:'numeric'}) : '—';
+    return `<tr>
+      <td><div class="td-name">${item.name}</div>${item.note?`<div class="td-sub">${item.note}</div>`:''}</td>
+      <td><span class="badge badge-purple">${item.category||'—'}</span></td>
+      <td style="font-weight:600">${(item.qty||0).toLocaleString('uk-UA',{maximumFractionDigits:2})}</td>
+      <td>${item.price>0?fmt(item.price):'—'}</td>
+      <td style="font-weight:700;color:var(--accent)">${item.total>0?fmt(item.total):'—'}</td>
+      <td><span class="badge ${condBadge}">${condLabel}</span></td>
+      <td style="color:var(--text-muted);font-size:12px">${dateStr}${person?`<div class="td-sub">${person.name}</div>`:''}</td>
+      <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openInvModal('${item.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteInvItem('${item.id}')">✕</button></div></td>
+    </tr>`;
+  }).join('');
 };
 
 // ── ANALYTICS PAGE ──
