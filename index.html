@@ -2069,16 +2069,26 @@ function renderBudget() {
       <div class="budget-name">${cat.name}</div>
       <div class="budget-amount" style="color:${over?'var(--red)':cat.color}">${fmt(spent)}</div>
       ${cat.limit ? `<div class="bp-track"><div class="bp-fill" style="width:${pct}%;background:${over?'var(--red)':cat.color}"></div></div>
-      <div class="budget-meta"><span style="color:${over?'var(--red)':'inherit'}">${pct}% використано</span><span>Ліміт: ${fmt(cat.limit)}</span></div>` : ''}
+      <div class="budget-meta"><span style="color:${over?'var(--red)':'inherit'}">${pct}% використано</span><span>Ліміт: ${fmt(cat.limit)}</span></div>
+      ${over ? `<div style="margin-top:5px;display:inline-flex;align-items:center;gap:4px;background:var(--red-light);color:var(--red);font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px">⚠ Перевищення: +${fmt(spent - cat.limit)}</div>` : ''}` : ''}
     </div>`;
   }).join('') : `<div class="empty" style="grid-column:1/-1">Додайте першу категорію</div>`;
+
+  // Дані попереднього місяця для порівняння в donut
+  const [py, pm] = month.split('-').map(Number);
+  const prevDate = new Date(py, pm - 2, 1);
+  const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const prevMonthExp = db.expenses.filter(e => e.date && e.date.startsWith(prevMonth));
+  const prevMonthName = monthName(prevMonth);
 
   document.getElementById('exp-cat').innerHTML = db.budgetCats.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
   drawDonut('budget-donut','budget-legend', db.budgetCats.map(cat=>({
     name:cat.name,
     value:monthExp.filter(e=>e.catId===cat.id).reduce((s,e)=>s+(e.amount||0),0),
+    prevValue:prevMonthExp.filter(e=>e.catId===cat.id).reduce((s,e)=>s+(e.amount||0),0),
+    prevMonthName,
     color:cat.color, iconHtml: renderIcon(cat.icon, '13px')
-  })));
+  })), { sortable: true, renderFn: renderBudget });
   renderExpenses();
   if (budgetTab==='stats') renderBudgetStats();
 }
@@ -3143,14 +3153,103 @@ window.saveIncomeCat = function() {
 };
 
 // ── DONUT ──
-function drawDonut(cId,lId,data) {
-  const canvas=document.getElementById(cId); if(!canvas) return;
-  const ctx=canvas.getContext('2d'); const f=data.filter(d=>d.value>0); const total=f.reduce((s,d)=>s+d.value,0);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(!f.length){ ctx.fillStyle='#e8e9ef'; ctx.beginPath(); ctx.arc(90,90,60,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(90,90,36,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#b0b3c8'; ctx.font='11px Plus Jakarta Sans'; ctx.textAlign='center'; ctx.fillText('Немає даних',90,94); }
-  else { let a=-Math.PI/2; f.forEach(d=>{ const sl=(d.value/total)*Math.PI*2; ctx.beginPath(); ctx.moveTo(90,90); ctx.arc(90,90,68,a,a+sl); ctx.closePath(); ctx.fillStyle=d.color; ctx.fill(); a+=sl; }); ctx.beginPath(); ctx.arc(90,90,40,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill(); ctx.fillStyle='#1a1b2e'; ctx.font='bold 13px Plus Jakarta Sans'; ctx.textAlign='center'; ctx.fillText(fmt(total).split(' ')[0],90,88); ctx.fillStyle='#8b8fa8'; ctx.font='10px Plus Jakarta Sans'; ctx.fillText(db.settings.currency||'грн',90,102); }
-  document.getElementById(lId).innerHTML=f.map(d=>`<div class="legend-item"><div class="legend-dot" style="background:${d.color}"></div><div class="legend-name">${d.iconHtml||d.icon||''} ${d.name}</div><div class="legend-val">${fmt(d.value)}</div><div class="legend-pct">${total?Math.round((d.value/total)*100)+'%':'0%'}</div></div>`).join('');
+// sortState per legend element id
+const _donutSortState = {};
+const _donutRenderCallback = {}; // lId -> render function
+
+function drawDonut(cId, lId, data, opts) {
+  opts = opts || {};
+  const canvas = document.getElementById(cId); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const f = data.filter(d => d.value > 0);
+  const total = f.reduce((s, d) => s + d.value, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!f.length) {
+    ctx.fillStyle = '#e8e9ef'; ctx.beginPath(); ctx.arc(90,90,60,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(90,90,36,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#b0b3c8'; ctx.font = '11px Plus Jakarta Sans'; ctx.textAlign = 'center';
+    ctx.fillText('Немає даних', 90, 94);
+  } else {
+    let a = -Math.PI/2;
+    f.forEach(d => {
+      const sl = (d.value/total)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(90,90); ctx.arc(90,90,68,a,a+sl); ctx.closePath();
+      ctx.fillStyle = d.color; ctx.fill(); a += sl;
+    });
+    ctx.beginPath(); ctx.arc(90,90,40,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+    ctx.fillStyle='#1a1b2e'; ctx.font='bold 13px Plus Jakarta Sans'; ctx.textAlign='center';
+    ctx.fillText(fmt(total).split(' ')[0], 90, 88);
+    ctx.fillStyle='#8b8fa8'; ctx.font='10px Plus Jakarta Sans';
+    ctx.fillText(db.settings.currency||'грн', 90, 102);
+  }
+
+  const legendEl = document.getElementById(lId);
+  if (!legendEl) return;
+
+  // ── Сортування ──
+  const sortable = !!opts.sortable;
+  if (sortable && opts.renderFn) _donutRenderCallback[lId] = opts.renderFn;
+  if (!_donutSortState[lId]) _donutSortState[lId] = 'default';
+  const sortState = _donutSortState[lId];
+
+  let displayData = [...f];
+  if (sortState === 'desc') displayData.sort((a, b) => b.value - a.value);
+  else if (sortState === 'asc') displayData.sort((a, b) => a.value - b.value);
+
+  // ── Рядки легенди ──
+  const rows = displayData.map(d => {
+    const pct = total ? Math.round((d.value/total)*100) : 0;
+    // Порівняння з минулим місяцем
+    let diffHtml = '';
+    if (d.prevValue !== undefined && d.prevMonthName) {
+      const diff = d.value - d.prevValue;
+      if (d.prevValue > 0) {
+        const diffPct = Math.round((diff / d.prevValue) * 100);
+        const sign = diff > 0 ? '+' : '';
+        // Для витрат: зростання — погано (червоний), спадання — добре (зелений)
+        const color = diff > 0 ? 'var(--red)' : 'var(--green)';
+        const arrow = diff > 0 ? '▲' : '▼';
+        diffHtml = `<span title="пор. з ${d.prevMonthName}" style="font-size:10px;font-weight:700;color:${color};margin-left:4px;white-space:nowrap">${arrow}${sign}${diffPct}%</span>`;
+      } else if (d.value > 0) {
+        diffHtml = `<span style="font-size:10px;color:var(--text-muted);margin-left:4px">нові</span>`;
+      }
+    }
+    return `<div class="legend-item">
+      <div class="legend-dot" style="background:${d.color}"></div>
+      <div class="legend-name">${d.iconHtml||d.icon||''} ${d.name}</div>
+      <div style="display:flex;align-items:center;gap:2px;margin-left:auto">
+        <div class="legend-val">${fmt(d.value)}</div>
+        ${diffHtml}
+      </div>
+      <div class="legend-pct" style="min-width:32px;text-align:right">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // ── Кнопки сортування ──
+  let sortHtml = '';
+  if (sortable) {
+    const states = [
+      { key: 'default', label: 'За замовч.', icon: '⇅' },
+      { key: 'desc',    label: 'Спадання', icon: '↓' },
+      { key: 'asc',     label: 'Зростання', icon: '↑' },
+    ];
+    const btns = states.map(s => {
+      const active = sortState === s.key;
+      return `<button onclick="window._donutSort('${lId}',' ${s.key}')"
+        style="padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent-light)':'transparent'};color:${active?'var(--accent)':'var(--text-muted)'};transition:all .15s;font-family:inherit"
+        title="${s.label}">${s.icon} ${s.label}</button>`;
+    }).join('');
+    sortHtml = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">${btns}</div>`;
+  }
+
+  legendEl.innerHTML = sortHtml + rows;
 }
+
+window._donutSort = function(lId, newState) {
+  _donutSortState[lId] = newState.trim();
+  if (_donutRenderCallback[lId]) _donutRenderCallback[lId]();
+  else if (typeof renderBudget === 'function') renderBudget();
+};
 
 // ── HISTORY ──
 function initHistory() {
