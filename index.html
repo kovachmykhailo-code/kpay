@@ -662,6 +662,24 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
             <div class="period-tab" id="sip-quarter" onclick="setSavIncomePeriod('quarter')">Квартал</div>
             <div class="period-tab" id="sip-half" onclick="setSavIncomePeriod('half')">Пів-року</div>
             <div class="period-tab active" id="sip-year" onclick="setSavIncomePeriod('year')">Рік</div>
+            <div class="period-tab" id="sip-pick" onclick="setSavIncomePeriod('pick')">Обрати</div>
+            <div class="period-tab" id="sip-range" onclick="setSavIncomePeriod('range')">Діапазон</div>
+          </div>
+          <!-- Custom month picker (shown when mode=pick) -->
+          <div id="sip-pick-wrap" style="display:none;align-items:center;gap:6px">
+            <input type="month" id="sip-pick-month"
+              style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;"
+              onchange="renderSavIncomeViz(_lastMonthData)">
+          </div>
+          <!-- Range picker (shown when mode=range) -->
+          <div id="sip-range-wrap" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+            <input type="month" id="sip-range-from"
+              style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;"
+              onchange="renderSavIncomeViz(_lastMonthData)">
+            <span style="font-size:12px;color:var(--text-muted)">—</span>
+            <input type="month" id="sip-range-to"
+              style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;"
+              onchange="renderSavIncomeViz(_lastMonthData)">
           </div>
           <select id="sav-period" onchange="renderSavings()" style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;">
             <option value="6">6 місяців</option>
@@ -2620,15 +2638,36 @@ window.renderSavings = function() {
 };
 
 // ── SAVINGS INCOME VISUALIZATION ──
-let _savIncomePeriod = 'year'; // month | quarter | half | year
+let _savIncomePeriod = 'year'; // month | quarter | half | year | pick | range
 let _lastMonthData = [];
 
 window.setSavIncomePeriod = function(p) {
   _savIncomePeriod = p;
-  ['month','quarter','half','year'].forEach(id => {
+  ['month','quarter','half','year','pick','range'].forEach(id => {
     const el = document.getElementById('sip-' + id);
     if (el) el.className = 'period-tab' + (id === p ? ' active' : '');
   });
+  // Show/hide pickers
+  const pickWrap  = document.getElementById('sip-pick-wrap');
+  const rangeWrap = document.getElementById('sip-range-wrap');
+  if (pickWrap)  pickWrap.style.display  = p === 'pick'  ? 'flex' : 'none';
+  if (rangeWrap) rangeWrap.style.display = p === 'range' ? 'flex' : 'none';
+  // Init picker defaults if empty
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  if (p === 'pick') {
+    const el = document.getElementById('sip-pick-month');
+    if (el && !el.value) el.value = cur;
+  }
+  if (p === 'range') {
+    const from = document.getElementById('sip-range-from');
+    const to   = document.getElementById('sip-range-to');
+    if (from && !from.value) {
+      const d6 = new Date(now.getFullYear(), now.getMonth()-5, 1);
+      from.value = `${d6.getFullYear()}-${String(d6.getMonth()+1).padStart(2,'0')}`;
+    }
+    if (to && !to.value) to.value = cur;
+  }
   renderSavIncomeViz(_lastMonthData);
 };
 
@@ -2654,7 +2693,27 @@ function renderSavIncomeViz(monthData) {
       const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
       periodMonths.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     }
+  } else if (p === 'pick') {
+    const val = document.getElementById('sip-pick-month')?.value || cur;
+    periodMonths = [val];
+  } else if (p === 'range') {
+    const fromVal = document.getElementById('sip-range-from')?.value;
+    const toVal   = document.getElementById('sip-range-to')?.value;
+    if (!fromVal || !toVal) { periodMonths = [cur]; }
+    else {
+      periodMonths = [];
+      // iterate months from → to
+      let [fy, fm] = fromVal.split('-').map(Number);
+      const [ty, tm] = toVal.split('-').map(Number);
+      while (fy < ty || (fy === ty && fm <= tm)) {
+        periodMonths.push(`${fy}-${String(fm).padStart(2,'0')}`);
+        fm++;
+        if (fm > 12) { fm = 1; fy++; }
+        if (periodMonths.length > 60) break; // safety cap
+      }
+    }
   } else {
+    // year
     periodMonths = [];
     for (let i=11; i>=0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
@@ -2662,9 +2721,22 @@ function renderSavIncomeViz(monthData) {
     }
   }
 
-  const pLabels = { month:'Місяць', quarter:'Квартал', half:'Пів-року', year:'Рік' };
+  // Build title
+  const pLabels = { month:'Місяць', quarter:'Квартал', half:'Пів-року', year:'Рік', pick:'', range:'' };
+  let titleStr = '';
+  if (p === 'pick') {
+    const val = document.getElementById('sip-pick-month')?.value || cur;
+    titleStr = monthName(val) + ' ' + val.split('-')[0];
+  } else if (p === 'range') {
+    const from = document.getElementById('sip-range-from')?.value;
+    const to   = document.getElementById('sip-range-to')?.value;
+    if (from && to) titleStr = monthShort(from)+' '+from.split('-')[0]+' — '+monthShort(to)+' '+to.split('-')[0];
+    else titleStr = 'Діапазон';
+  } else {
+    titleStr = 'Дохід за ' + pLabels[p].toLowerCase();
+  }
   const titleEl = document.getElementById('sav-income-viz-title');
-  if (titleEl) titleEl.textContent = 'Дохід за ' + pLabels[p].toLowerCase();
+  if (titleEl) titleEl.textContent = titleStr;
 
   // Aggregate data per period
   function getM(month) {
