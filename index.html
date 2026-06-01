@@ -656,6 +656,13 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       <div class="section-header">
         <div><div class="section-title">Заощадження</div><div class="section-sub" id="sav-updated">Загальна фінансова картина</div></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <!-- Period tabs for income visualization -->
+          <div class="period-tabs" id="sav-income-period-tabs">
+            <div class="period-tab" id="sip-month" onclick="setSavIncomePeriod('month')">Місяць</div>
+            <div class="period-tab" id="sip-quarter" onclick="setSavIncomePeriod('quarter')">Квартал</div>
+            <div class="period-tab" id="sip-half" onclick="setSavIncomePeriod('half')">Пів-року</div>
+            <div class="period-tab active" id="sip-year" onclick="setSavIncomePeriod('year')">Рік</div>
+          </div>
           <select id="sav-period" onchange="renderSavings()" style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;">
             <option value="6">6 місяців</option>
             <option value="12" selected>12 місяців</option>
@@ -667,10 +674,21 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 
       <!-- Загальний баланс -->
       <div class="savings-balance-card" id="sav-balance-card">
-        <div class="sbc-label">💰 Загальні заощадження</div>
+        <div class="sbc-label"><span style="display:inline-flex;align-items:center;gap:7px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h3.75a1.75 1.75 0 0 1 0 3.5h-2.5a1.75 1.75 0 0 0 0 3.5H15"/></svg> Загальні заощадження</span></div>
         <div class="sbc-amount" id="sav-total-amount">0 грн</div>
         <div class="sbc-sub" id="sav-total-sub"></div>
-        <button class="sbc-edit-btn" onclick="openSavingsBaseModal()">✏ Початковий баланс</button>
+        <button class="sbc-edit-btn" onclick="openSavingsBaseModal()" style="display:inline-flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Початковий баланс</button>
+      </div>
+
+      <!-- ── INCOME VISUALIZATION ── -->
+      <div class="card" id="sav-income-viz-card" style="margin-bottom:18px;">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="sav-income-viz-title">Дохід за рік</div>
+            <div class="card-sub" id="sav-income-viz-sub">ЗП + Надходження − Витрати</div>
+          </div>
+        </div>
+        <div id="sav-income-viz"></div>
       </div>
 
       <!-- Breakdown -->
@@ -689,7 +707,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       <!-- Envelopes -->
       <div class="card">
         <div class="card-header">
-          <div><div class="card-title">🧧 Цілі та конверти</div><div class="card-sub">Розподіліть заощадження по цілях</div></div>
+          <div><div class="card-title" style="display:flex;align-items:center;gap:7px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><polyline points="2 6 12 13 22 6"/></svg> Цілі та конверти</div><div class="card-sub">Розподіліть заощадження по цілях</div></div>
           <div style="display:flex;gap:8px;align-items:center;">
             <div id="sav-unallocated-badge" style="display:none;font-size:12px;font-weight:600;background:var(--orange-light);color:var(--orange);padding:4px 10px;border-radius:20px;"></div>
             <button class="btn btn-outline btn-sm" onclick="openEnvModal()">+ Нова ціль</button>
@@ -831,23 +849,23 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
         </div>
         <div>
           <div class="card">
-            <div class="card-title" style="margin-bottom:12px;">☁️ Firebase Sync</div>
+            <div class="card-title" style="margin-bottom:12px;display:flex;align-items:center;gap:7px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> Firebase Sync</div>
             <p style="font-size:13px;color:var(--text-muted);line-height:1.65;margin-bottom:14px;">Дані автоматично зберігаються у хмарі при кожній зміні. Відкривай K-Pay з будь-якого пристрою — все синхронізовано.</p>
             <div id="fb-status-pill" class="fb-pill online"><div class="dot" style="background:var(--green)"></div>Підключено до Firebase</div>
           </div>
           <div class="card">
-            <div class="card-title" style="margin-bottom:12px;">💾 Резервна копія</div>
+            <div class="card-title" style="margin-bottom:12px;display:flex;align-items:center;gap:7px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Резервна копія</div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-              <button class="btn btn-ghost" onclick="exportData()">⬇ Експорт JSON</button>
-              <button class="btn btn-ghost" onclick="document.getElementById('import-file').click()">⬆ Імпорт JSON</button>
+              <button class="btn btn-ghost" onclick="exportData()"><span style="display:inline-flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Експорт JSON</span></button>
+              <button class="btn btn-ghost" onclick="document.getElementById('import-file').click()"><span style="display:inline-flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Імпорт JSON</span></button>
               <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
             </div>
             <div style="height:1px;background:var(--border);margin-bottom:14px;"></div>
-            <div class="card-title" style="margin-bottom:10px;font-size:13px;color:var(--text-muted)">🧹 Очищення даних</div>
+            <div class="card-title" style="margin-bottom:10px;font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:7px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Очищення даних</div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="btn btn-ghost btn-sm" onclick="clearOrphanPayroll()" title="Видалити нарахування видалених співробітників">Прибрати зайві нарахування</button>
               <button class="btn btn-ghost btn-sm" onclick="if(confirm('Видалити всю історію нарахувань?'))clearPayrollOnly()">Очистити нарахування</button>
-              <button class="btn btn-danger btn-sm" onclick="if(confirm('Видалити абсолютно всі дані?'))clearData()">🗑 Скинути все</button>
+              <button class="btn btn-danger btn-sm" onclick="if(confirm('Видалити абсолютно всі дані?'))clearData()"><span style="display:inline-flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Скинути все</span></button>
             </div>
           </div>
         </div>
@@ -948,9 +966,9 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
         <div class="form-row">
           <label>Метод</label>
           <select id="pf-method" style="background:#fff">
-            <option value="card">💳 Банківська карта</option>
-            <option value="cash">💵 Готівка</option>
-            <option value="custom">✏️ Інший…</option>
+            <option value="card"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Банківська карта</span></option>
+            <option value="cash"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M5 6v12M19 6v12"/></svg> Готівка</span></option>
+            <option value="custom"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Інший…</span></option>
           </select>
         </div>
         <div class="form-row" id="pf-custom-wrap" style="display:none"><label>Назва методу</label><input id="pf-custom" type="text" placeholder="Наприклад: USDT" style="background:#fff"></div>
@@ -979,7 +997,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
     <button class="modal-close-x" onclick="closeModal('slip-modal')">×</button>
   </div>
   <div class="modal-body"><div id="slip-content"></div></div>
-  <div class="modal-footer"><button class="btn btn-ghost" onclick="printSlip()">🖨 Друк</button><button class="btn btn-ghost" onclick="closeModal('slip-modal')">Закрити</button></div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="printSlip()"><span style="display:inline-flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Друк</span></button><button class="btn btn-ghost" onclick="closeModal('slip-modal')">Закрити</button></div>
 </div></div>
 
 <!-- SAVINGS BASE MODAL -->
@@ -1098,9 +1116,9 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       </div>
       <div class="form-row"><label>Метод</label>
         <select id="pe-method">
-          <option value="card">💳 Банківська карта</option>
-          <option value="cash">💵 Готівка</option>
-          <option value="custom">✏️ Інший…</option>
+          <option value="card"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Банківська карта</span></option>
+          <option value="cash"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M5 6v12M19 6v12"/></svg> Готівка</span></option>
+          <option value="custom"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Інший…</span></option>
         </select>
       </div>
       <div class="form-row" id="pe-custom-wrap" style="display:none"><label>Назва методу</label><input id="pe-custom" type="text" placeholder="Наприклад: USDT"></div>
@@ -1131,10 +1149,10 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       </div>
       <div class="form-row"><label>Стан</label>
         <select id="inv-condition">
-          <option value="new">✨ Новий</option>
-          <option value="good">👍 Добрий</option>
-          <option value="fair">⚠️ Задовільний</option>
-          <option value="poor">🔧 Потребує ремонту</option>
+          <option value="new"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Новий</span></option>
+          <option value="good"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-6 0v4l-3 1v8a2 2 0 0 0 2 2h9.7a2 2 0 0 0 2-1.7l.9-6a2 2 0 0 0-2-2.3H14z"/></svg> Добрий</span></option>
+          <option value="fair"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Задовільний</span></option>
+          <option value="poor"><span style="display:inline-flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Потребує ремонту</span></option>
         </select>
       </div>
       <div class="form-row"><label>Кількість *</label><input id="inv-qty" type="number" placeholder="1" min="0.01" step="0.01" value="1" oninput="calcInvTotal()"></div>
@@ -1313,10 +1331,10 @@ async function saveToFirebase() {
   try {
     showToast('syncing','Збереження в хмарі…');
     await DOCREF.set({ db, updatedAt: new Date().toISOString() });
-    showToast('ok','☁️ Збережено у Firebase');
+    showToast('ok','Збережено у Firebase');
   } catch(e) {
     console.warn('Firebase save:', e);
-    showToast('err','⚠ Помилка — збережено локально');
+    showToast('err','Помилка — збережено локально');
     setOnline(false);
   }
 }
@@ -1388,7 +1406,7 @@ window.handleTopbarSearch = function(q) {
   const sb={active:'badge-green',vacation:'badge-yellow',inactive:'badge-red'}, sl={active:'Активний',vacation:'Відпустка',inactive:'Неактивний'};
   const tl={salary:'Окладник',hourly:'Погодинник',shift:'Змінник'};
   if(!emps.length){ tb.innerHTML=`<tr><td colspan="6"><div class="empty">Нічого не знайдено за «${q}»</div></td></tr>`; return; }
-  tb.innerHTML=emps.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openEmpModal('${e.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
+  tb.innerHTML=emps.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openEmpModal('${e.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
 };
 
 // ── NAV ──
@@ -1461,7 +1479,7 @@ function renderEmployees() {
   if(!db.employees.length){ tb.innerHTML=`<tr><td colspan="6"><div class="empty">Додайте першого співробітника</div></td></tr>`; return; }
   const sb={active:'badge-green',vacation:'badge-yellow',inactive:'badge-red'},sl={active:'Активний',vacation:'Відпустка',inactive:'Неактивний'};
   const tl={salary:'Окладник',hourly:'Погодинник',shift:'Змінник'};
-  tb.innerHTML=db.employees.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openEmpModal('${e.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
+  tb.innerHTML=db.employees.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openEmpModal('${e.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
 }
 window.openEmpModal = function(id) {
   editEmpId=id||null; const emp=id?db.employees.find(e=>e.id===id):null;
@@ -1610,8 +1628,8 @@ function renderPayroll() {
       <span class="badge ${statusBadge[status]||'badge-yellow'}">${statusLabel[status]||'Очікує'}</span>
     </td>
     <td><div style="display:flex;gap:5px">
-      <button class="btn btn-ghost btn-sm" onclick="openPayModal('${emp.id}')">✏</button>
-      <button class="btn btn-ghost btn-sm" onclick="showSlip('${emp.id}','${currentPayMonth}')">👁</button>
+      <button class="btn btn-ghost btn-sm" onclick="openPayModal('${emp.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="btn btn-ghost btn-sm" onclick="showSlip('${emp.id}','${currentPayMonth}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       ${entry?`<button class="btn btn-danger btn-sm" onclick="deletePayrollEntry('${entry.id}')">✕</button>`:''}
     </div></td>
   </tr>`;}).join('');
@@ -1729,7 +1747,7 @@ window.savePayEntry=function(){
 };
 
 // ── PAYMENTS LIST ──
-const METHOD_LABELS={card:'💳 Карта',cash:'💵 Готівка'};
+const METHOD_LABELS={card:'Карта',cash:'Готівка'};
 
 function renderPaymentsList(){
   const {fn}=getModalCalc();
@@ -1751,7 +1769,7 @@ function renderPaymentsList(){
   if(!payments.length){ listEl.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">Виплат ще немає</div>`; return; }
   const sorted=[...payments].sort((a,b)=>a.date.localeCompare(b.date));
   listEl.innerHTML=sorted.map(p=>{
-    const methodLabel=p.method==='card'?'💳 Карта':p.method==='cash'?'💵 Готівка':`✏️ ${p.customMethod||p.method}`;
+    const methodLabel=p.method==='card'?'Карта':p.method==='cash'?'Готівка':`${p.customMethod||p.method}`;
     return `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="flex:1">
@@ -1762,7 +1780,7 @@ function renderPaymentsList(){
           <div style="font-size:12px;color:var(--text-muted)">${new Date(p.date).toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'})}${p.note?` · ${p.note}`:''}</div>
         </div>
         <div style="display:flex;gap:5px">
-          <button class="btn btn-ghost btn-sm" onclick="editPayment('${p.id}')">✏</button>
+          <button class="btn btn-ghost btn-sm" onclick="editPayment('${p.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="btn btn-danger btn-sm" onclick="deletePayment('${p.id}')">✕</button>
         </div>
       </div>
@@ -1773,10 +1791,10 @@ function renderPaymentsList(){
 window.addPayment=function(){
   const amount=parseFloat(document.getElementById('pf-amount').value)||0;
   const date=document.getElementById('pf-date').value;
-  if(!amount||!date) return showToast('err','⚠ Вкажіть суму та дату');
+  if(!amount||!date) return showToast('err','Вкажіть суму та дату');
   const method=document.getElementById('pf-method').value;
   const customMethod=method==='custom'?document.getElementById('pf-custom').value.trim():'';
-  if(method==='custom'&&!customMethod) return showToast('err','⚠ Введіть назву методу');
+  if(method==='custom'&&!customMethod) return showToast('err','Введіть назву методу');
   const note=document.getElementById('pf-note').value.trim();
   if(!currentEditEntry){
     const empId=editPayId, month=currentPayMonth;
@@ -1889,7 +1907,7 @@ window.saveEditPayment=function(){
   const p=currentEditEntry.payments.find(x=>x.id===editingPaymentId); if(!p) return;
   const amount=parseFloat(document.getElementById('pe-amount').value)||0;
   const date=document.getElementById('pe-date').value;
-  if(!amount||!date) return showToast('err','⚠ Вкажіть суму та дату');
+  if(!amount||!date) return showToast('err','Вкажіть суму та дату');
   const method=document.getElementById('pe-method').value;
   const customMethod=method==='custom'?document.getElementById('pe-custom').value.trim():'';
   p.amount=amount; p.date=date; p.method=method; p.customMethod=customMethod;
@@ -1931,13 +1949,13 @@ window.showSlip=function(empId,month){
     ${sortedPays.length?`
       <div style="margin-top:16px;margin-bottom:6px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Історія виплат</div>
       ${sortedPays.map(p=>{
-        const ml=p.method==='card'?'💳 Карта':p.method==='cash'?'💵 Готівка':`✏️ ${p.customMethod||p.method}`;
+        const ml=p.method==='card'?'Карта':p.method==='cash'?'Готівка':`${p.customMethod||p.method}`;
         return `<div class="slip-row"><span>${new Date(p.date).toLocaleDateString('uk-UA',{day:'numeric',month:'long'})} · ${ml}${p.note?` · ${p.note}`:''}</span><span style="color:var(--green);font-weight:600">+${fmt(p.amount)}</span></div>`;
       }).join('')}
       <div class="slip-row" style="font-weight:600"><span>Разом виплачено</span><span style="color:var(--green)">${fmt(paidTotal)}</span></div>
       ${remaining>0?`<div class="slip-row"><span>Залишок до виплати</span><span style="color:var(--orange);font-weight:600">${fmt(remaining)}</span></div>`:''}
     `:''}
-    ${entry?.note?`<div style="margin-top:10px;font-size:12px;color:var(--text-muted)">📝 ${entry.note}</div>`:''}`;
+    ${entry?.note?`<div style="margin-top:10px;font-size:12px;color:var(--text-muted)">${entry.note}</div>`:''}`;
   document.getElementById('slip-modal').classList.add('open');
 };
 window.printSlip=function(){const c=document.getElementById('slip-content').innerHTML,w=window.open('','_blank');w.document.write(`<html><head><title>Листок</title><style>body{font-family:sans-serif;padding:32px;max-width:480px}.slip-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #ddd;font-size:14px}.slip-total{display:flex;justify-content:space-between;padding:14px;background:#f0f0f0;border-radius:10px;margin-top:12px;font-weight:700;font-size:16px}.sep{height:1px;background:#ddd;margin:12px 0}</style></head><body>${c}</body></html>`);w.document.close();w.print();};
@@ -1986,7 +2004,7 @@ window.selectColor = function(c) { selectedColor=c; renderColorPicker(); };
 window.saveBudgetCat = function() {
   const name=document.getElementById('bc-name').value.trim();
   if(!name) return alert('Введіть назву');
-  const icon=document.getElementById('bc-icon').value.trim()||'📦';
+  const icon=document.getElementById('bc-icon').value.trim()||'';
   const cat={id:editBudgetId||uid(),name,limit:parseFloat(document.getElementById('bc-limit').value)||0,icon,color:selectedColor};
   if(editBudgetId){const i=db.budgetCats.findIndex(c=>c.id===editBudgetId);if(i!==-1)db.budgetCats[i]=cat;}else db.budgetCats.push(cat);
   save(); closeModal('budget-modal'); renderBudget();
@@ -2062,7 +2080,7 @@ function renderBudget() {
       <div class="budget-item-top">
         <div class="budget-icon" style="background:${cat.color}22;color:${cat.color}">${iconHtml}</div>
         <div class="budget-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openBudgetModal('${cat.id}');event.stopPropagation()">✏</button>
+          <button class="btn btn-ghost btn-sm" onclick="openBudgetModal('${cat.id}');event.stopPropagation()" title="Редагувати"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="btn btn-danger btn-sm" onclick="deleteBudgetCat('${cat.id}');event.stopPropagation()">✕</button>
         </div>
       </div>
@@ -2070,7 +2088,7 @@ function renderBudget() {
       <div class="budget-amount" style="color:${over?'var(--red)':cat.color}">${fmt(spent)}</div>
       ${cat.limit ? `<div class="bp-track"><div class="bp-fill" style="width:${pct}%;background:${over?'var(--red)':cat.color}"></div></div>
       <div class="budget-meta"><span style="color:${over?'var(--red)':'inherit'}">${pct}% використано</span><span>Ліміт: ${fmt(cat.limit)}</span></div>
-      ${over ? `<div style="margin-top:5px;display:inline-flex;align-items:center;gap:4px;background:var(--red-light);color:var(--red);font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px">⚠ Перевищення: +${fmt(spent - cat.limit)}</div>` : ''}` : ''}
+      ${over ? `<div style="margin-top:5px;display:inline-flex;align-items:center;gap:4px;background:var(--red-light);color:var(--red);font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px">Перевищення: +${fmt(spent - cat.limit)}</div>` : ''}` : ''}
     </div>`;
   }).join('') : `<div class="empty" style="grid-column:1/-1">Додайте першу категорію</div>`;
 
@@ -2268,7 +2286,7 @@ window.saveIncome = function() {
   if(editIncomeId){const i=db.incomes.findIndex(x=>x.id===editIncomeId);if(i!==-1)db.incomes[i]=inc;}else db.incomes.push(inc);
   save(); closeModal('income-modal'); renderIncome();
 };
-function renderIncome() { const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:cat.color||COLORS[idx%COLORS.length],icon:cat.icon||'💰'})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.icon||'💰'} ${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
+function renderIncome() { const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:cat.color||COLORS[idx%COLORS.length],icon:cat.icon||''})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
 window.renderIncomeChart = function() { const catId=document.getElementById('income-cat-filter').value, now=new Date(), months=[]; for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; const list=db.incomes.filter(inc=>inc.date?.startsWith(key)&&(!catId||inc.catId===catId)); months.push({key,label:monthShort(key),total:list.reduce((s,i)=>s+(i.amount||0),0)}); } const mx=Math.max(...months.map(m=>m.total),1); document.getElementById('income-chart-12').innerHTML=months.map(m=>`<div class="cbar-wrap"><div style="width:100%;display:flex;flex-direction:column;align-items:center;height:100px;justify-content:flex-end"><div class="cbar paid" data-tip="${m.label}: ${fmt(m.total)}" style="height:${Math.round((m.total/mx)*92)}px;width:100%;"></div></div><div class="cbar-label">${m.label}</div></div>`).join(''); };
 function renderIncomeTable() {
   const tb=document.getElementById('income-tbody');
@@ -2279,7 +2297,7 @@ function renderIncomeTable() {
   tb.innerHTML=shown.map(inc=>{
     const cat=db.incomeCats.find(c=>c.id===inc.catId);
     const catColor = cat?.color || 'var(--green)';
-    return `<tr><td><span class="badge" style="background:${catColor}22;color:${catColor};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon||'💰','13px'):'💰'} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openIncomeModal('${inc.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`;
+    return `<tr><td><span class="badge" style="background:${catColor}22;color:${catColor};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openIncomeModal('${inc.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`;
   }).join('');
   if(list.length>LIMIT) tb.innerHTML+=`<tr><td colspan="5" style="text-align:center;padding:10px;color:var(--text-muted);font-size:12px">Показано ${LIMIT} із ${list.length} записів</td></tr>`;
 }
@@ -2382,7 +2400,7 @@ function renderPayModalStats() {
         ${pays.length?`
           <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Виплати</div>
           ${pays.map(p=>{
-            const ml=p.method==='card'?'💳':p.method==='cash'?'💵':'✏️';
+            const ml=p.method==='card'?'&#x2022;':p.method==='cash'?'&#x25A1;':'&#x2023;';
             return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
               <span style="font-size:12px;color:var(--text-muted)">${ml} ${new Date(p.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'long'})}${p.note?' · '+p.note:''}</span>
               <span style="font-weight:600;color:var(--green)">${fmt(p.amount)}</span>
@@ -2464,9 +2482,7 @@ window.renderSavings = function() {
   const periodIncome = monthData.reduce((s,d)=>s+d.income,0);
   const periodExp    = monthData.reduce((s,d)=>s+d.expenses,0);
   document.getElementById('sav-total-sub').innerHTML =
-    `<span>💳 ЗП: ${fmt(periodPaid)}</span>
-     <span>📈 Дохід: ${fmt(periodIncome)}</span>
-     <span>📤 Витрати: ${fmt(periodExp)}</span>`;
+    `<span>ЗП: ${fmt(periodPaid)}</span><span>Дохід: ${fmt(periodIncome)}</span><span>Витрати: ${fmt(periodExp)}</span>`;
 
   // Breakdown
   document.getElementById('sav-breakdown').innerHTML = `
@@ -2581,6 +2597,9 @@ window.renderSavings = function() {
       <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#ef4444;opacity:.7"></div>Дефіцит за місяць (−)</div>
     </div>`;
 
+  // Income visualization
+  renderSavIncomeViz(monthData);
+
   // Envelopes grid
   renderEnvelopes(totalSaved);
 
@@ -2600,6 +2619,199 @@ window.renderSavings = function() {
   }).reverse().join(''); // newest first
 };
 
+// ── SAVINGS INCOME VISUALIZATION ──
+let _savIncomePeriod = 'year'; // month | quarter | half | year
+let _lastMonthData = [];
+
+window.setSavIncomePeriod = function(p) {
+  _savIncomePeriod = p;
+  ['month','quarter','half','year'].forEach(id => {
+    const el = document.getElementById('sip-' + id);
+    if (el) el.className = 'period-tab' + (id === p ? ' active' : '');
+  });
+  renderSavIncomeViz(_lastMonthData);
+};
+
+function renderSavIncomeViz(monthData) {
+  _lastMonthData = monthData;
+  const p = _savIncomePeriod;
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // Determine period months
+  let periodMonths;
+  if (p === 'month') {
+    periodMonths = [cur];
+  } else if (p === 'quarter') {
+    periodMonths = [];
+    for (let i=2; i>=0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      periodMonths.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+  } else if (p === 'half') {
+    periodMonths = [];
+    for (let i=5; i>=0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      periodMonths.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+  } else {
+    periodMonths = [];
+    for (let i=11; i>=0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      periodMonths.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+  }
+
+  const pLabels = { month:'Місяць', quarter:'Квартал', half:'Пів-року', year:'Рік' };
+  const titleEl = document.getElementById('sav-income-viz-title');
+  if (titleEl) titleEl.textContent = 'Дохід за ' + pLabels[p].toLowerCase();
+
+  // Aggregate data per period
+  function getM(month) {
+    const d = monthData.find(x=>x.month===month);
+    return d || { month, paid:0, income:0, expenses:0, saved:0 };
+  }
+
+  if (p === 'month') {
+    // Single month — big stat cards row
+    const d = getM(cur);
+    const total = d.paid + d.income;
+    const net = d.saved;
+    document.getElementById('sav-income-viz').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px">
+        ${vizCard('ЗП виплачено', d.paid, 'var(--blue)', 'payroll')}
+        ${vizCard('Надходження', d.income, 'var(--green)', 'income')}
+        ${vizCard('Витрати', d.expenses, 'var(--red)', 'expense')}
+        ${vizCard('Результат', net, net>=0?'var(--accent)':'var(--red)', 'net')}
+      </div>
+      ${vizFlowBar(d.paid, d.income, d.expenses)}`;
+  } else {
+    // Multiple months — grouped bars SVG + summary row
+    const rows = periodMonths.map(m => getM(m));
+    const totPaid = rows.reduce((s,r)=>s+r.paid,0);
+    const totIncome = rows.reduce((s,r)=>s+r.income,0);
+    const totExp = rows.reduce((s,r)=>s+r.expenses,0);
+    const totNet = totPaid + totIncome - totExp;
+
+    const maxVal = Math.max(...rows.map(r => Math.max(r.paid+r.income, r.expenses)), 1);
+
+    const W_BAR = p==='quarter' ? 70 : p==='half' ? 52 : 38;
+    const GAP = 12;
+    const H = 140;
+    const PAD = {top:14, bottom:28, left:64, right:12};
+    const n = rows.length;
+    const totalW = PAD.left + n*(W_BAR*2+GAP) + (n-1)*GAP + PAD.right;
+    const cH = H - PAD.top - PAD.bottom;
+
+    function gy(v) { return PAD.top + cH - (v/maxVal)*cH; }
+    function barH(v) { return Math.max(2, (v/maxVal)*cH); }
+
+    // Y axis ticks
+    let yGrid = '';
+    for (let i=0;i<=4;i++) {
+      const v = (maxVal/4)*i;
+      const y = gy(v);
+      const lbl = v>=1000 ? Math.round(v/1000)+'к' : Math.round(v);
+      yGrid += `<line x1="${PAD.left}" y1="${y}" x2="${totalW-PAD.right}" y2="${y}" stroke="#e8e9ef" stroke-width="1"/>
+                <text x="${PAD.left-6}" y="${y+4}" text-anchor="end" font-size="10" fill="#8b8fa8">${lbl}</text>`;
+    }
+
+    let bars = '';
+    rows.forEach((r, i) => {
+      const baseX = PAD.left + i*(W_BAR*2+GAP*2);
+      const incomeTotal = r.paid + r.income;
+      // income bar (paid+income stacked)
+      const ih = barH(incomeTotal);
+      const iy = gy(incomeTotal);
+      const ph = barH(r.paid);
+      const py = gy(r.paid);
+      // expense bar
+      const eh = barH(r.expenses);
+      const ey = gy(r.expenses);
+      const xInc = baseX;
+      const xExp = baseX + W_BAR + GAP/2;
+      // income bar (two-tone: paid=blue, income=green)
+      if (r.income > 0) {
+        bars += `<rect x="${xInc}" y="${iy}" width="${W_BAR}" height="${Math.max(2,barH(r.income))}" fill="#22c55e" rx="3 3 0 0"><title>Надходження: ${fmt(r.income)}</title></rect>`;
+      }
+      bars += `<rect x="${xInc}" y="${py}" width="${W_BAR}" height="${Math.max(2,ph)}" fill="#3b82f6" rx="${r.income>0?'0':'3 3'} 0 0"><title>ЗП: ${fmt(r.paid)}</title></rect>`;
+      // expense bar
+      bars += `<rect x="${xExp}" y="${ey}" width="${W_BAR}" height="${Math.max(2,eh)}" fill="#ef4444" rx="3 3 0 0" opacity="0.85"><title>Витрати: ${fmt(r.expenses)}</title></rect>`;
+      // net dot
+      const net = r.saved;
+      const dotY = gy(Math.max(0, net));
+      // x label
+      const lx = baseX + W_BAR;
+      bars += `<text x="${lx}" y="${H-PAD.bottom+14}" text-anchor="middle" font-size="9.5" fill="#8b8fa8">${monthShort(r.month)}</text>`;
+    });
+
+    document.getElementById('sav-income-viz').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+        ${vizCard('ЗП виплачено', totPaid, 'var(--blue)', 'payroll')}
+        ${vizCard('Надходження', totIncome, 'var(--green)', 'income')}
+        ${vizCard('Витрати', totExp, 'var(--red)', 'expense')}
+        ${vizCard('Результат', totNet, totNet>=0?'var(--accent)':'var(--red)', 'net')}
+      </div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <svg width="${totalW}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+          ${yGrid}${bars}
+          <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${H-PAD.bottom}" stroke="#e8e9ef" stroke-width="1"/>
+        </svg>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 2px">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
+          <div style="width:10px;height:10px;border-radius:2px;background:#3b82f6"></div>ЗП
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
+          <div style="width:10px;height:10px;border-radius:2px;background:#22c55e"></div>Надходження
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
+          <div style="width:10px;height:10px;border-radius:2px;background:#ef4444;opacity:.85"></div>Витрати
+        </div>
+      </div>`;
+  }
+}
+
+function vizCard(label, value, color, type) {
+  const icons = {
+    payroll: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+    income:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>',
+    expense: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>',
+    net:     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h3.75a1.75 1.75 0 0 1 0 3.5h-2.5a1.75 1.75 0 0 0 0 3.5H15"/></svg>',
+  };
+  return `<div style="background:var(--bg);border-radius:12px;padding:12px 14px;border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:6px;color:${color};margin-bottom:6px;opacity:.8">${icons[type]||''}<span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">${label}</span></div>
+    <div style="font-size:20px;font-weight:300;color:${color};letter-spacing:-.02em">${fmt(Math.abs(value))}</div>
+  </div>`;
+}
+
+function vizFlowBar(paid, income, expenses) {
+  const total = paid + income;
+  const paidPct = total>0 ? Math.round((paid/total)*100) : 0;
+  const incPct = total>0 ? 100-paidPct : 0;
+  const expPct = total>0 ? Math.min(100,Math.round((expenses/total)*100)) : 0;
+  const net = total - expenses;
+  return `
+    <div style="margin-top:4px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px">
+        <span>Загальний дохід: ${fmt(total)}</span>
+        <span style="color:${net>=0?'var(--accent)':'var(--red)'}">Результат: ${net>=0?'+':''}${fmt(net)}</span>
+      </div>
+      <div style="height:8px;border-radius:20px;overflow:hidden;display:flex;background:var(--border)">
+        <div style="width:${paidPct}%;background:#3b82f6;transition:width .5s"></div>
+        <div style="width:${incPct}%;background:#22c55e;transition:width .5s"></div>
+      </div>
+      <div style="height:5px;border-radius:20px;overflow:hidden;margin-top:3px;background:var(--border)">
+        <div style="width:${expPct}%;background:#ef4444;opacity:.85;transition:width .5s"></div>
+      </div>
+      <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#3b82f6"></div>ЗП ${paidPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#22c55e"></div>Надх. ${incPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#ef4444;opacity:.85"></div>Витр. ${expPct}%</div>
+      </div>
+    </div>`;
+}
+
 function renderEnvelopes(totalSaved) {
   const grid = document.getElementById('env-grid');
   if (!(db.envelopes||[]).length) {
@@ -2618,9 +2830,9 @@ function renderEnvelopes(totalSaved) {
     const deadlineStr = env.deadline ? ` · до ${new Date(env.deadline+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short',year:'numeric'})}` : '';
     return `<div class="env-card">
       <div class="env-card-top">
-        <div class="env-icon-wrap" style="background:${color}22">${renderIcon(env.icon||'🎯','24px')}</div>
+        <div class="env-icon-wrap" style="background:${color}22">${renderIcon(env.icon,'24px')}</div>
         <div class="env-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openEnvModal('${env.id}')">✏</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEnvModal('${env.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="btn btn-danger btn-sm" onclick="deleteEnvelope('${env.id}')">✕</button>
         </div>
       </div>
@@ -2631,7 +2843,7 @@ function renderEnvelopes(totalSaved) {
         ${goal>0?`<div class="env-goal-row"><span>${pct}% виконано</span><span>залишилось ${fmt(Math.max(0,goal-saved))}</span></div>`:''}
       </div>
       ${goal>0?`<div class="env-track"><div class="env-fill" style="width:${pct}%;background:${color}"></div></div>`:''}
-      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:12px" onclick="openEnvAllocModal('${env.id}')">💸 Поповнити</button>
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:12px" onclick="openEnvAllocModal('${env.id}')" style="display:inline-flex;align-items:center;gap:6px"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"1\" x2=\"12\" y2=\"23\"/><path d=\"M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/></svg> Поповнити</button>
     </div>`;
   }).join('') + `<div class="env-add-card" onclick="openEnvModal()">
     <i class="ph-light ph-plus" style="font-size:26px"></i>
@@ -2683,7 +2895,7 @@ window.saveEnvelope = function() {
     id: editEnvId || uid(),
     name,
     goal: parseFloat(document.getElementById('env-goal').value) || 0,
-    icon: document.getElementById('env-icon').value.trim() || '🎯',
+    icon: document.getElementById('env-icon').value.trim() || '',
     color: selectedColor || '#7c6ef7',
     deadline: document.getElementById('env-deadline').value || '',
     note: document.getElementById('env-note').value.trim(),
@@ -2760,7 +2972,7 @@ function renderEnvAllocTxs(env) {
 
 window.saveEnvAlloc = function() {
   const amount = parseFloat(document.getElementById('env-alloc-amount').value)||0;
-  if (!amount) return showToast('err','⚠ Вкажіть суму');
+  if (!amount) return showToast('err','Вкажіть суму');
   const note = document.getElementById('env-alloc-note').value.trim();
   const env = (db.envelopes||[]).find(e=>e.id===currentAllocEnvId);
   if (!env) return;
@@ -2786,7 +2998,7 @@ window.deleteEnvTx = function(envId, txId) {
 
 // ── INVENTORY ──
 let editInvId = null;
-const INV_CONDITIONS = { new:'✨ Новий', good:'👍 Добрий', fair:'⚠️ Задовільний', poor:'🔧 Ремонт' };
+const INV_CONDITIONS = { new:'Новий', good:'Добрий', fair:'Задовільний', poor:'Ремонт' };
 const INV_CONDITION_BADGES = { new:'badge-green', good:'badge-blue', fair:'badge-yellow', poor:'badge-red' };
 
 window.openInvModal = function(id) {
@@ -2899,7 +3111,7 @@ window.renderInventory = function() {
       <td style="font-weight:700;color:var(--accent)">${item.total>0?fmt(item.total):'—'}</td>
       <td><span class="badge ${condBadge}">${condLabel}</span></td>
       <td style="color:var(--text-muted);font-size:12px">${dateStr}${person?`<div class="td-sub">${person.name}</div>`:''}</td>
-      <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openInvModal('${item.id}')">✏</button><button class="btn btn-danger btn-sm" onclick="deleteInvItem('${item.id}')">✕</button></div></td>
+      <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openInvModal('${item.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteInvItem('${item.id}')">✕</button></div></td>
     </tr>`;
   }).join('');
 };
@@ -3138,7 +3350,7 @@ window.openIncomeCatModal = function(id) {
 window.saveIncomeCat = function() {
   const name = document.getElementById('icat-name').value.trim();
   if (!name) return alert('Введіть назву');
-  const icon = document.getElementById('icat-icon').value.trim() || '💰';
+  const icon = document.getElementById('icat-icon').value.trim() || '';
   const cat = { id: editIcatId || uid(), name, icon, color: icatSelectedColor };
   if (editIcatId) {
     const idx = db.incomeCats.findIndex(c=>c.id===editIcatId);
@@ -3279,7 +3491,7 @@ function renderHistory() {
       <td style="color:var(--green);font-weight:700">${fmt(p.net)}</td>
       <td><span class="badge ${p.status==='paid'?'badge-green':'badge-yellow'}" style="cursor:pointer" onclick="togglePayStatus('${p.id}')">${p.status==='paid'?'✓ Виплачено':'Очікує'}</span></td>
       <td><div style="display:flex;gap:5px">
-        <button class="btn btn-ghost btn-sm" onclick="showSlip('${p.empId}','${p.month}')" title="Листок">👁</button>
+        <button class="btn btn-ghost btn-sm" onclick="showSlip('${p.empId}','${p.month}')" title="Листок"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></button>
         <button class="btn btn-danger btn-sm" onclick="deletePayrollEntry('${p.id}')" title="Видалити">✕</button>
       </div></td>
     </tr>`;
@@ -3300,7 +3512,7 @@ window.saveSettings = function() {
   const vijsk = parseFloat(document.getElementById('s-vijsk').value);
   const esv   = parseFloat(document.getElementById('s-esv').value);
   const hours = parseInt(document.getElementById('s-hours').value);
-  if (isNaN(pdfo)||isNaN(vijsk)||isNaN(esv)||isNaN(hours)) return showToast('err','⚠ Перевірте значення полів');
+  if (isNaN(pdfo)||isNaN(vijsk)||isNaN(esv)||isNaN(hours)) return showToast('err','Перевірте значення полів');
   db.settings = { pdfo, vijsk, esv, currency: document.getElementById('s-currency').value, hours };
   save();
   showToast('ok',`✓ Збережено: ПДФО ${pdfo}%, ВЗ ${vijsk}%, ЄСВ ${esv}%`);
@@ -3399,8 +3611,8 @@ function seedDemoData() {
   db.employees=[{id:ids[0],name:'Іванова Олена Петрівна',position:'Менеджер',dept:'Продажі',type:'salary',rate:25000,hire:'2022-03-01',status:'active',note:''},{id:ids[1],name:'Коваленко Дмитро Іванович',position:'Програміст',dept:'IT',type:'hourly',rate:250,hire:'2023-01-15',status:'active',note:''},{id:ids[2],name:'Мельник Тетяна Олегівна',position:'Бухгалтер',dept:'Фінанси',type:'salary',rate:20000,hire:'2021-09-01',status:'vacation',note:''}];
   for(let i=0;i<=11;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.employees.forEach(emp=>{ const base=calcGross(emp,db.settings.hours); const{gross,tax,esv,net}=calcTaxes(base); db.payroll.push({id:uid(),empId:emp.id,month:key,gross,tax,esv,net,hours:db.settings.hours,bonus:0,advance:0,deductions:0,status:i>0?'paid':(emp.id===ids[0]?'paid':'pending'),note:''}); }); }
   const bc=['#7c6ef7','#3b82f6','#f97316','#22c55e','#f472b6','#eab308'];
-  [['Авто','🚗',8000],['Будинок','🏠',12000],['Відпочинок','✈️',5000],['Подарунки','🎁',3000],['Внески','💳',2000],['Їжа','🍕',6000]].forEach(([name,icon,limit],idx)=>{ const id=uid(); db.budgetCats.push({id,name,icon,limit,color:bc[idx]}); db.expenses.push({id:uid(),catId:id,amount:Math.round(limit*.45+Math.random()*limit*.25),date:thisMonth()+'-10',desc:'Приклад'}); });
-  [['Фріланс','💻'],['Оренда','🏘'],['Дивіденди','📈'],['Продаж','🛒']].forEach(([name,icon])=>{ const id=uid(); db.incomeCats.push({id,name,icon}); for(let i=0;i<6;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.incomes.push({id:uid(),catId:id,amount:Math.round(2000+Math.random()*8000),date:key+'-15',desc:'Надходження'}); } });
+  [['Авто','',8000],['Будинок','',12000],['Відпочинок','',5000],['Подарунки','',3000],['Внески','',2000],['Їжа','',6000]].forEach(([name,icon,limit],idx)=>{ const id=uid(); db.budgetCats.push({id,name,icon,limit,color:bc[idx]}); db.expenses.push({id:uid(),catId:id,amount:Math.round(limit*.45+Math.random()*limit*.25),date:thisMonth()+'-10',desc:'Приклад'}); });
+  [['Фріланс',''],['Оренда',''],['Дивіденди',''],['Продаж','']].forEach(([name,icon])=>{ const id=uid(); db.incomeCats.push({id,name,icon}); for(let i=0;i<6;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.incomes.push({id:uid(),catId:id,amount:Math.round(2000+Math.random()*8000),date:key+'-15',desc:'Надходження'}); } });
 }
 
 // ── BOOT — Firebase Authentication ──
