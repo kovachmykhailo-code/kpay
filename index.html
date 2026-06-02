@@ -2170,7 +2170,7 @@ function renderBudget() {
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:5px">
           <span>Розподіл лімітів категорій</span>
-          <span style="color:${catsLimitSum>refLimit?'var(--red)':catsLimitSum===refLimit?'var(--green)':'inherit'}">${fmt(catsLimitSum)} / ${fmt(refLimit)}</span>
+          <span>${fmt(refLimit)}</span>
         </div>
         <div style="height:10px;background:var(--border);border-radius:20px;overflow:hidden;display:flex">
           ${db.budgetCats.filter(cat=>cat.limit>0).map(cat => {
