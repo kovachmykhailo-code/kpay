@@ -641,9 +641,43 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
     <!-- INCOME -->
     <div id="pg-income" class="page">
       <div class="section-header">
-        <div><div class="section-title">Інші надходження</div></div>
-        <button class="btn btn-primary" onclick="openIncomeModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Додати</button>
+        <div><div class="section-title">Надходження</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="period-tabs" id="income-period-tabs">
+            <div class="period-tab active" id="ipt-month"   onclick="setIncomePeriod('month')">Місяць</div>
+            <div class="period-tab"        id="ipt-quarter" onclick="setIncomePeriod('quarter')">Квартал</div>
+            <div class="period-tab"        id="ipt-half"    onclick="setIncomePeriod('half')">Пів-року</div>
+            <div class="period-tab"        id="ipt-year"    onclick="setIncomePeriod('year')">Рік</div>
+            <div class="period-tab"        id="ipt-pick"    onclick="setIncomePeriod('pick')">Обрати</div>
+            <div class="period-tab"        id="ipt-range"   onclick="setIncomePeriod('range')">Діапазон</div>
+          </div>
+          <input type="month" id="ipt-pick-month"
+            style="display:none;background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;outline:none;min-height:40px;"
+            onchange="renderIncomeSummary()">
+          <div id="ipt-range-wrap" style="display:none;align-items:center;gap:6px">
+            <input type="month" id="ipt-range-from"
+              style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;outline:none;min-height:40px;"
+              onchange="renderIncomeSummary()">
+            <span style="font-size:12px;color:var(--text-muted)">—</span>
+            <input type="month" id="ipt-range-to"
+              style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;outline:none;min-height:40px;"
+              onchange="renderIncomeSummary()">
+          </div>
+          <button class="btn btn-primary" onclick="openIncomeModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Додати</button>
+        </div>
       </div>
+
+      <!-- ── INCOME SUMMARY CARD ── -->
+      <div class="card" style="margin-bottom:16px;" id="income-summary-card">
+        <div class="card-header" style="margin-bottom:14px">
+          <div>
+            <div class="card-title" id="income-summary-title">Надходження за місяць</div>
+            <div class="card-sub" id="income-summary-sub"></div>
+          </div>
+        </div>
+        <div id="income-summary-body"></div>
+      </div>
+
       <div class="grid-2" style="margin-bottom:16px;">
         <div class="card" style="margin-bottom:0"><div class="card-header"><div class="card-title">За категоріями</div></div><canvas id="income-donut" width="180" height="180" style="display:block;margin:0 auto;"></canvas><div class="donut-legend" id="income-legend" style="margin-top:12px;"></div></div>
         <div class="card" style="margin-bottom:0"><div class="card-header"><div><div class="card-title">За 12 місяців</div></div><select id="income-cat-filter" onchange="renderIncomeChart()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12px;outline:none;min-height:36px;-webkit-appearance:none;"></select></div><div class="chart-12" id="income-chart-12"></div></div>
@@ -2071,14 +2105,25 @@ function renderBudget() {
   const totalPct = totalLimit>0 ? Math.min(100,Math.round((totalSpent/totalLimit)*100)) : 0;
   const totalOver = totalLimit>0 && totalSpent>totalLimit;
 
+  // ── Підрахунок лімітів по категоріях ──
+  const catsWithLimit    = db.budgetCats.filter(c => c.limit > 0);
+  const catsWithoutLimit = db.budgetCats.filter(c => !c.limit);
+  const catsLimitSum     = catsWithLimit.reduce((s, c) => s + (c.limit||0), 0);
+  const catsLimitGap     = totalLimit > 0 ? totalLimit - catsLimitSum : null; // різниця між заг. лімітом і сумою по катах
+
   document.getElementById('budget-total-summary').innerHTML = `
-    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:${totalLimit?'12px':'0'}">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px">
       <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Витрачено</div>
         <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':'var(--text)'};margin-top:3px">${fmt(totalSpent)}</div></div>
       ${totalLimit?`
       <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Залишок</div>
-        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':totalRemaining===0?'var(--text-muted)':'var(--green)'};margin-top:3px">${totalOver?'−'+fmt(totalSpent-totalLimit):fmt(totalRemaining)}</div></div>
-      <div style="width:100%">
+        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':totalRemaining===0?'var(--text-muted)':'var(--green)'};margin-top:3px">${totalOver?'−'+fmt(totalSpent-totalLimit):fmt(totalRemaining)}</div></div>`:''}
+      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Сума лімітів</div>
+        <div style="font-size:22px;font-weight:300;color:var(--text);margin-top:3px">${fmt(catsLimitSum)}</div></div>
+      ${totalLimit?`
+      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">${catsLimitGap>=0?'Нерозподілено':'Перевищення лімітів'}</div>
+        <div style="font-size:22px;font-weight:300;color:${catsLimitGap<0?'var(--red)':catsLimitGap===0?'var(--green)':'var(--text-muted)'};margin-top:3px">${catsLimitGap<0?'−':''}${fmt(Math.abs(catsLimitGap))}</div></div>`:''}
+      ${totalLimit?`<div style="width:100%">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px">
           <span>${totalPct}% використано</span><span>Ліміт: ${fmt(totalLimit)}</span>
         </div>
@@ -2086,6 +2131,50 @@ function renderBudget() {
           <div style="height:100%;border-radius:20px;background:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--accent)'};width:${totalPct}%;transition:width .6s"></div>
         </div>
       </div>`:''}
+    </div>
+    <!-- ── Розбивка лімітів по категоріях ── -->
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Ліміти по категоріях</div>
+        <div style="display:flex;gap:10px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">
+          <span>${catsWithLimit.length} із ${db.budgetCats.length} з лімітом</span>
+          ${catsWithoutLimit.length?`<span style="color:var(--orange);font-weight:600">${catsWithoutLimit.length} без ліміту</span>`:'<span style="color:var(--green);font-weight:600">всі задані</span>'}
+        </div>
+      </div>
+      ${db.budgetCats.length ? `
+      <div style="display:flex;flex-direction:column;gap:7px">
+        ${db.budgetCats.map(cat => {
+          const catSpent = monthExp.filter(e=>e.catId===cat.id).reduce((s,e)=>s+(e.amount||0),0);
+          const catPct   = cat.limit ? Math.min(100, Math.round((catSpent/cat.limit)*100)) : 0;
+          const catOver  = cat.limit && catSpent > cat.limit;
+          const barW     = totalLimit>0 && cat.limit ? Math.min(100, Math.round((cat.limit/totalLimit)*100)) : (catsLimitSum>0 && cat.limit ? Math.min(100, Math.round((cat.limit/catsLimitSum)*100)) : 0);
+          return `<div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;min-height:28px">
+            <div style="display:flex;align-items:center;gap:7px;min-width:0">
+              <div style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:${cat.color}"></div>
+              <span style="font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat.name}</span>
+            </div>
+            <div style="font-size:12px;color:${catOver?'var(--red)':'var(--text-muted)'};white-space:nowrap;text-align:right">
+              ${fmt(catSpent)}${cat.limit?` / ${fmt(cat.limit)}`:''}
+            </div>
+            <div style="width:72px">
+              ${cat.limit ? `
+              <div style="height:4px;background:var(--border);border-radius:20px;overflow:hidden">
+                <div style="height:100%;border-radius:20px;background:${catOver?'var(--red)':catPct>80?'var(--orange)':cat.color};width:${catPct}%;transition:width .5s"></div>
+              </div>` : `<span style="font-size:10px;color:var(--text-muted);font-style:italic">без ліміту</span>`}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--text)">Разом</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);text-align:right">${fmt(totalSpent)} / ${fmt(catsLimitSum)}</div>
+        <div style="width:72px">
+          ${catsLimitSum>0?`
+          <div style="height:4px;background:var(--border);border-radius:20px;overflow:hidden">
+            <div style="height:100%;border-radius:20px;background:${totalSpent>catsLimitSum?'var(--red)':Math.round((totalSpent/catsLimitSum)*100)>80?'var(--orange)':'var(--accent)'};width:${Math.min(100,Math.round((totalSpent/catsLimitSum)*100))}%;transition:width .5s"></div>
+          </div>`:''}
+        </div>
+      </div>` : `<div style="font-size:12px;color:var(--text-muted);font-style:italic">Немає категорій</div>`}
     </div>`;
 
   const grid = document.getElementById('budget-grid');
@@ -2304,7 +2393,207 @@ window.saveIncome = function() {
   if(editIncomeId){const i=db.incomes.findIndex(x=>x.id===editIncomeId);if(i!==-1)db.incomes[i]=inc;}else db.incomes.push(inc);
   save(); closeModal('income-modal'); renderIncome();
 };
-function renderIncome() { const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:cat.color||COLORS[idx%COLORS.length],icon:cat.icon||''})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
+// ── INCOME PERIOD SUMMARY ──
+let _incomePeriod = 'month';
+
+window.setIncomePeriod = function(p) {
+  _incomePeriod = p;
+  ['month','quarter','half','year','pick','range'].forEach(id => {
+    const el = document.getElementById('ipt-' + id);
+    if (el) el.className = 'period-tab' + (id === p ? ' active' : '');
+  });
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const pickEl  = document.getElementById('ipt-pick-month');
+  const rangeWr = document.getElementById('ipt-range-wrap');
+  if (pickEl)  pickEl.style.display  = p === 'pick'  ? 'block' : 'none';
+  if (rangeWr) rangeWr.style.display = p === 'range' ? 'flex'  : 'none';
+  if (p === 'pick'  && pickEl && !pickEl.value) pickEl.value = cur;
+  if (p === 'range') {
+    const fr = document.getElementById('ipt-range-from');
+    const to = document.getElementById('ipt-range-to');
+    if (fr && !fr.value) { const d=new Date(now.getFullYear(),now.getMonth()-5,1); fr.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+    if (to && !to.value) to.value = cur;
+  }
+  renderIncomeSummary();
+};
+
+function getIncomePeriodMonths() {
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const p = _incomePeriod;
+  let months = [];
+  if (p === 'month') {
+    months = [cur];
+  } else if (p === 'quarter') {
+    for (let i=2;i>=0;i--) { const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
+  } else if (p === 'half') {
+    for (let i=5;i>=0;i--) { const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
+  } else if (p === 'pick') {
+    const val = document.getElementById('ipt-pick-month')?.value || cur;
+    months = [val];
+  } else if (p === 'range') {
+    const fromVal = document.getElementById('ipt-range-from')?.value;
+    const toVal   = document.getElementById('ipt-range-to')?.value;
+    if (fromVal && toVal) {
+      let [fy,fm] = fromVal.split('-').map(Number);
+      const [ty,tm] = toVal.split('-').map(Number);
+      while (fy < ty || (fy === ty && fm <= tm)) {
+        months.push(`${fy}-${String(fm).padStart(2,'0')}`);
+        if (++fm > 12) { fm=1; fy++; }
+        if (months.length > 60) break;
+      }
+    } else months = [cur];
+  } else { // year
+    for (let i=11;i>=0;i--) { const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
+  }
+  return months;
+}
+
+window.renderIncomeSummary = function() {
+  const months = getIncomePeriodMonths();
+  const p = _incomePeriod;
+  const pLabels = { month:'Місяць', quarter:'Квартал', half:'Пів-року', year:'Рік', pick:'', range:'' };
+
+  // Build title
+  let titleStr = 'Надходження за ';
+  if (p === 'pick') {
+    const val = document.getElementById('ipt-pick-month')?.value;
+    titleStr = val ? 'Надходження: ' + monthName(val) + ' ' + val.split('-')[0] : 'Надходження за місяць';
+  } else if (p === 'range') {
+    const fr = document.getElementById('ipt-range-from')?.value;
+    const to = document.getElementById('ipt-range-to')?.value;
+    titleStr = (fr && to) ? `Надходження: ${monthShort(fr)} ${fr.split('-')[0]} — ${monthShort(to)} ${to.split('-')[0]}` : 'Надходження за діапазон';
+  } else {
+    titleStr = 'Надходження за ' + pLabels[p].toLowerCase();
+  }
+  const titleEl = document.getElementById('income-summary-title');
+  if (titleEl) titleEl.textContent = titleStr;
+
+  const subEl = document.getElementById('income-summary-sub');
+  if (subEl) subEl.textContent = months.length > 1 ? `${months.length} місяців: ${monthShort(months[0])} — ${monthShort(months[months.length-1])}` : '';
+
+  // ── Calc salary payments (db.payroll[].payments[].amount where payment.date in period) ──
+  // Each payroll entry has: entry.month, entry.payments[]={amount,date,...}
+  // We sum payments whose date falls within any of the period months
+  let salaryTotal = 0;
+  (db.payroll || []).forEach(entry => {
+    (entry.payments || []).forEach(pay => {
+      if (!pay.date) return;
+      const payMonth = pay.date.slice(0,7);
+      if (months.includes(payMonth)) salaryTotal += (pay.amount || 0);
+    });
+  });
+
+  // ── Calc other incomes ──
+  let otherTotal = 0;
+  const otherByMonth = {};
+  months.forEach(m => otherByMonth[m] = 0);
+  db.incomes.forEach(inc => {
+    if (!inc.date) return;
+    const m = inc.date.slice(0,7);
+    if (months.includes(m)) {
+      otherTotal += (inc.amount || 0);
+      if (otherByMonth[m] !== undefined) otherByMonth[m] += (inc.amount || 0);
+    }
+  });
+
+  const totalAll = salaryTotal + otherTotal;
+  const cur = db.settings?.currency || 'грн';
+
+  // ── Category breakdown for other incomes ──
+  const catBreakdown = db.incomeCats.map(cat => {
+    const sum = db.incomes.filter(i => i.catId === cat.id && months.includes((i.date||'').slice(0,7)))
+                          .reduce((s,i) => s + (i.amount||0), 0);
+    return { cat, sum };
+  }).filter(x => x.sum > 0).sort((a,b) => b.sum - a.sum);
+
+  const bodyEl = document.getElementById('income-summary-body');
+  if (!bodyEl) return;
+
+  bodyEl.innerHTML = `
+    <!-- Three main stat cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px">
+
+      <!-- Salary -->
+      <div style="background:var(--bg);border-radius:12px;padding:14px 16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#3b82f6;opacity:.85">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">ЗП виплачено</span>
+        </div>
+        <div style="font-size:24px;font-weight:300;color:#3b82f6;letter-spacing:-.02em">${fmt(salaryTotal)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">надходження із заробітної плати</div>
+      </div>
+
+      <!-- Other incomes -->
+      <div style="background:var(--bg);border-radius:12px;padding:14px 16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#22c55e;opacity:.85">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
+          <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Інші надходження</span>
+        </div>
+        <div style="font-size:24px;font-weight:300;color:#22c55e;letter-spacing:-.02em">${fmt(otherTotal)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">окрім заробітної плати</div>
+      </div>
+
+      <!-- Total -->
+      <div style="background:var(--bg);border-radius:12px;padding:14px 16px;border:1px solid var(--border);border-left:3px solid var(--accent)">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:var(--accent);opacity:.9">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h3.75a1.75 1.75 0 0 1 0 3.5h-2.5a1.75 1.75 0 0 0 0 3.5H15"/></svg>
+          <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Всі надходження</span>
+        </div>
+        <div style="font-size:24px;font-weight:300;color:var(--accent);letter-spacing:-.02em">${fmt(totalAll)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">ЗП + інші надходження</div>
+      </div>
+    </div>
+
+    <!-- Proportion bar -->
+    ${totalAll > 0 ? (() => {
+      const sp = Math.round((salaryTotal/totalAll)*100);
+      const op = 100 - sp;
+      return `<div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:5px">
+          <span>Структура надходжень</span>
+          <span>${sp}% ЗП · ${op}% інші</span>
+        </div>
+        <div style="height:7px;border-radius:20px;overflow:hidden;display:flex;background:var(--border)">
+          <div style="width:${sp}%;background:#3b82f6;transition:width .5s"></div>
+          <div style="width:${op}%;background:#22c55e;transition:width .5s"></div>
+        </div>
+      </div>`;
+    })() : ''}
+
+    <!-- Category breakdown of other incomes -->
+    ${catBreakdown.length > 0 ? `
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Інші надходження по категоріях</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${catBreakdown.map(({cat, sum}) => {
+          const pct = otherTotal > 0 ? Math.min(100, Math.round((sum/otherTotal)*100)) : 0;
+          const color = cat.color || '#22c55e';
+          return `<div style="display:grid;grid-template-columns:1fr auto 80px;align-items:center;gap:10px">
+            <div style="display:flex;align-items:center;gap:7px;min-width:0">
+              <div style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:${color}"></div>
+              <span style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat.name}</span>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:${color};white-space:nowrap">${fmt(sum)}</div>
+            <div>
+              <div style="height:4px;background:var(--border);border-radius:20px;overflow:hidden">
+                <div style="height:100%;border-radius:20px;background:${color};width:${pct}%;transition:width .5s"></div>
+              </div>
+              <div style="font-size:10px;color:var(--text-muted);text-align:right;margin-top:2px">${pct}%</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:var(--text)">Разом інші</span>
+        <span style="font-size:13px;font-weight:700;color:#22c55e">${fmt(otherTotal)}</span>
+      </div>
+    </div>` : ''}
+  `;
+};
+
+function renderIncome() { renderIncomeSummary(); const ct=db.incomeCats.map((cat,idx)=>({name:cat.name,value:db.incomes.filter(i=>i.catId===cat.id).reduce((s,i)=>s+(i.amount||0),0),color:cat.color||COLORS[idx%COLORS.length],icon:cat.icon||''})); drawDonut('income-donut','income-legend',ct); document.getElementById('income-cat-filter').innerHTML='<option value="">Всі</option>'+db.incomeCats.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); renderIncomeChart(); renderIncomeTable(); }
 window.renderIncomeChart = function() { const catId=document.getElementById('income-cat-filter').value, now=new Date(), months=[]; for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; const list=db.incomes.filter(inc=>inc.date?.startsWith(key)&&(!catId||inc.catId===catId)); months.push({key,label:monthShort(key),total:list.reduce((s,i)=>s+(i.amount||0),0)}); } const mx=Math.max(...months.map(m=>m.total),1); document.getElementById('income-chart-12').innerHTML=months.map(m=>`<div class="cbar-wrap"><div style="width:100%;display:flex;flex-direction:column;align-items:center;height:100px;justify-content:flex-end"><div class="cbar paid" data-tip="${m.label}: ${fmt(m.total)}" style="height:${Math.round((m.total/mx)*92)}px;width:100%;"></div></div><div class="cbar-label">${m.label}</div></div>`).join(''); };
 function renderIncomeTable() {
   const tb=document.getElementById('income-tbody');
