@@ -2473,16 +2473,12 @@ window.renderIncomeSummary = function() {
   const subEl = document.getElementById('income-summary-sub');
   if (subEl) subEl.textContent = months.length > 1 ? `${months.length} місяців: ${monthShort(months[0])} — ${monthShort(months[months.length-1])}` : '';
 
-  // ── Calc salary payments (db.payroll[].payments[].amount where payment.date in period) ──
-  // Each payroll entry has: entry.month, entry.payments[]={amount,date,...}
-  // We sum payments whose date falls within any of the period months
+  // ── Calc salary payments by entry.month (за який місяць нарахована ЗП, не коли виплачена) ──
   let salaryTotal = 0;
   (db.payroll || []).forEach(entry => {
-    (entry.payments || []).forEach(pay => {
-      if (!pay.date) return;
-      const payMonth = pay.date.slice(0,7);
-      if (months.includes(payMonth)) salaryTotal += (pay.amount || 0);
-    });
+    if (!entry.month || !months.includes(entry.month)) return;
+    const paid = (entry.payments || []).reduce((s, p) => s + (p.amount || 0), 0);
+    salaryTotal += paid;
   });
 
   // ── Calc other incomes ──
