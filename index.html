@@ -2111,13 +2111,15 @@ function renderBudget() {
       <div>
         <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Загальний ліміт</div>
         <div style="font-size:26px;font-weight:300;color:var(--text-muted);margin-top:2px">${fmt(refLimit)}</div>
-      </div>` : '<div style="font-size:12px;color:var(--text-muted);font-style:italic">Додайте ліміти у категоріях — загальний з'явиться автоматично</div>'}
+      </div>` : '<div style="font-size:12px;color:var(--text-muted);font-style:italic">Додайте ліміти у категоріях — загальний зʼявиться автоматично</div>'}
     </div>
     ${refLimit > 0 ? `
     <div>
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:5px">
         <span>${totalPct}% використано</span>
-        <span>${catsWithoutLimit.length ? '<span style="color:var(--orange)">'+catsWithoutLimit.length+' категорій без ліміту</span>' : '<span style="color:var(--green)">всі категорії з лімітом</span>'}</span>
+        ${catsWithoutLimit.length
+          ? `<span style="color:var(--orange)">${catsWithoutLimit.length} категорій без ліміту</span>`
+          : `<span style="color:var(--green)">всі категорії з лімітом</span>`}
       </div>
       <div style="height:8px;background:var(--border);border-radius:20px;overflow:hidden">
         <div style="height:100%;border-radius:20px;background:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--accent)'};width:${totalPct}%;transition:width .6s"></div>
