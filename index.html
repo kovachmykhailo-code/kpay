@@ -552,36 +552,18 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       <div id="bview-month">
         <!-- Загальний бюджет -->
         <div class="card" style="margin-bottom:16px;">
-          <!-- Collapsed header row -->
           <div class="card-header" onclick="toggleBudgetTotal()" style="cursor:pointer;user-select:none;margin-bottom:0">
             <div style="flex:1;min-width:0">
               <div class="card-title">Ліміти бюджету</div>
               <div id="budget-total-collapsed-hint" style="font-size:12px;color:var(--text-muted);margin-top:2px"></div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0" onclick="event.stopPropagation()">
-              <span id="budget-currency-lbl" style="display:none"></span><!-- keep for JS compat -->
-              <div id="budget-total-toggle-icon" style="color:var(--text-muted);transition:transform .25s">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+            <div id="budget-total-toggle-icon" style="color:var(--text-muted);transition:transform .25s;flex-shrink:0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
-          <!-- Expanded body -->
           <div id="budget-total-body" style="display:none;overflow:hidden;padding-top:14px">
-            <!-- Mode toggle -->
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-              <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">Режим:</span>
-              <div class="period-tabs" style="flex-shrink:0">
-                <div id="blm-auto" class="period-tab active" onclick="setBudgetLimitMode('auto')" title="Загальний ліміт = сума лімітів категорій">Авто</div>
-                <div id="blm-manual" class="period-tab" onclick="setBudgetLimitMode('manual')" title="Встановити загальний ліміт вручну">Вручну</div>
-              </div>
-              <div id="blm-manual-input" style="display:none;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)">
-                Загальний ліміт:
-                <input id="budget-total-limit" type="number" placeholder="0"
-                  oninput="saveBudgetTotalLimit()"
-                  style="width:110px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:14px;font-weight:600;outline:none;color:var(--text)">
-                <span style="font-size:13px;color:var(--text-muted)" id="budget-currency-lbl2"></span>
-              </div>
-            </div>
+            <input id="budget-total-limit" type="hidden"><!-- залишаємо для сумісності з saveBudgetTotalLimit -->
+            <span id="budget-currency-lbl" style="display:none"></span>
             <div id="budget-total-summary"></div>
           </div>
         </div>
@@ -2112,62 +2094,31 @@ function renderBudget() {
   document.getElementById('budget-sub').textContent = monthName(month) + ' ' + month.split('-')[0];
   document.getElementById('budget-currency-lbl').textContent = db.settings.currency||'грн';
 
-  // ── Режим лімітів (авто = сума категорій, manual = задано вручну) ──
-  const limitMode = db.budgetLimitMode || 'auto';
-  // Sync mode UI
-  ['auto','manual'].forEach(m => {
-    const el = document.getElementById('blm-' + m);
-    if (el) el.className = 'period-tab' + (m === limitMode ? ' active' : '');
-  });
-  const manInp = document.getElementById('blm-manual-input');
-  if (manInp) manInp.style.display = limitMode === 'manual' ? 'flex' : 'none';
-  // Currency labels
-  const cur2 = db.settings?.currency || 'грн';
-  ['budget-currency-lbl','budget-currency-lbl2'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.textContent = cur2;
-  });
-
   const monthExp = db.expenses.filter(e => e.date && e.date.startsWith(month));
   const totalSpent = monthExp.reduce((s,e) => s + (e.amount||0), 0);
   const catsWithLimit    = db.budgetCats.filter(c => c.limit > 0);
   const catsWithoutLimit = db.budgetCats.filter(c => !c.limit);
-  const catsLimitSum     = catsWithLimit.reduce((s, c) => s + (c.limit||0), 0);
+  // Загальний ліміт = завжди сума лімітів по категоріях
+  const refLimit = catsWithLimit.reduce((s, c) => s + (c.limit||0), 0);
 
-  // Effective total limit depends on mode
-  let totalLimit;
-  if (limitMode === 'auto') {
-    totalLimit = catsLimitSum; // automatically derived from categories
-    const inp = document.getElementById('budget-total-limit');
-    if (inp) inp.value = '';
-  } else {
-    totalLimit = (db.budgetLimits||{})[month] || 0;
-    const inp = document.getElementById('budget-total-limit');
-    if (inp) inp.value = totalLimit || '';
-  }
-
-  const totalRemaining = Math.max(0, totalLimit - totalSpent);
-  const totalPct  = totalLimit > 0 ? Math.min(100, Math.round((totalSpent / totalLimit) * 100)) : 0;
-  const totalOver = totalLimit > 0 && totalSpent > totalLimit;
+  const totalRemaining = Math.max(0, refLimit - totalSpent);
+  const totalPct  = refLimit > 0 ? Math.min(100, Math.round((totalSpent / refLimit) * 100)) : 0;
+  const totalOver = refLimit > 0 && totalSpent > refLimit;
 
   // Collapsed hint
   const hintEl = document.getElementById('budget-total-collapsed-hint');
   if (hintEl) {
-    if (totalLimit > 0) {
-      const pctStr = totalPct + '%';
+    if (refLimit > 0) {
       const remainStr = totalOver
-        ? '−' + fmt(totalSpent - totalLimit) + ' перевищення'
+        ? '−' + fmt(totalSpent - refLimit) + ' перевищення'
         : fmt(totalRemaining) + ' залишок';
-      hintEl.innerHTML = `<span style="color:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--text-muted)'}">${pctStr} використано · ${remainStr} · ліміт ${fmt(totalLimit)}</span>`;
+      hintEl.innerHTML = `<span style="color:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--text-muted)'}">${totalPct}% використано · ${remainStr} · ліміт ${fmt(refLimit)}</span>`;
     } else {
       hintEl.textContent = catsWithoutLimit.length
-        ? `${catsWithoutLimit.length} категорій без ліміту`
+        ? `${db.budgetCats.length ? db.budgetCats.length+' категорій, ліміти не задані' : 'Немає категорій'}`
         : 'Усі категорії мають ліміт';
     }
   }
-
-  // In auto mode: big stacked bar showing how category limits fill the total
-  // In manual mode: same but with explicit total limit on top
-  const refLimit = totalLimit; // same value, kept for clarity
 
   document.getElementById('budget-total-summary').innerHTML = `
     <!-- Stat row -->
@@ -2184,15 +2135,8 @@ function renderBudget() {
         </div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">${limitMode==='auto'?'Загальний (авто)':'Загальний ліміт'}</div>
+        <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Загальний ліміт</div>
         <div style="font-size:22px;font-weight:300;color:var(--text-muted);margin-top:3px">${fmt(refLimit)}</div>
-      </div>` : ''}
-      ${limitMode==='manual' && refLimit > 0 ? `
-      <div>
-        <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">${catsLimitSum<=refLimit?'Нерозподілено':'Ліміти > загальний'}</div>
-        <div style="font-size:22px;font-weight:300;color:${catsLimitSum>refLimit?'var(--red)':catsLimitSum===refLimit?'var(--green)':'var(--text-muted)'};margin-top:3px">
-          ${catsLimitSum>refLimit?'−':''}${fmt(Math.abs(refLimit-catsLimitSum))}
-        </div>
       </div>` : ''}
     </div>
 
@@ -2288,7 +2232,7 @@ function renderBudget() {
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <span style="font-size:12px;font-weight:700;color:var(--text)">Всього витрачено / ліміт</span>
         <span style="font-size:13px;font-weight:700;color:${totalOver?'var(--red)':'var(--text)'}">
-          ${fmt(totalSpent)} / ${fmt(refLimit||catsLimitSum)}
+          ${fmt(totalSpent)} / ${fmt(refLimit)}
         </span>
       </div>` : `<div style="font-size:12px;color:var(--text-muted);font-style:italic">Немає категорій</div>`}
     </div>`;
@@ -2341,14 +2285,6 @@ window.toggleBudgetTotal = function(forceOpen) {
   const open = forceOpen !== undefined ? forceOpen : body.style.display === 'none';
   body.style.display   = open ? 'block' : 'none';
   icon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
-};
-
-window.setBudgetLimitMode = function(mode) {
-  if (!db.budgetLimitMode || db.budgetLimitMode !== mode) {
-    db.budgetLimitMode = mode;
-    save();
-  }
-  renderBudget();
 };
 
 window.saveBudgetTotalLimit = function() {
