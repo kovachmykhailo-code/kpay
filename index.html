@@ -552,27 +552,36 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
       <div id="bview-month">
         <!-- Загальний бюджет -->
         <div class="card" style="margin-bottom:16px;">
-          <div class="card-header" onclick="toggleBudgetTotal()" style="cursor:pointer;user-select:none;">
-            <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
-              <div style="flex:1;min-width:0">
-                <div class="card-title">Загальний бюджет місяця</div>
-                <div class="card-sub" id="budget-total-collapsed-hint" style="display:block">Встановіть ліміт і відстежуйте залишок</div>
-              </div>
+          <!-- Collapsed header row -->
+          <div class="card-header" onclick="toggleBudgetTotal()" style="cursor:pointer;user-select:none;margin-bottom:0">
+            <div style="flex:1;min-width:0">
+              <div class="card-title">Ліміти бюджету</div>
+              <div id="budget-total-collapsed-hint" style="font-size:12px;color:var(--text-muted);margin-top:2px"></div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;" onclick="event.stopPropagation()">
-              <div id="budget-total-limit-wrap" style="display:none;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)">
-                Ліміт:
-                <input id="budget-total-limit" type="number" placeholder="0"
-                  oninput="saveBudgetTotalLimit()"
-                  style="width:110px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:14px;font-weight:600;outline:none;color:var(--text)">
-                <span style="font-size:13px;color:var(--text-muted)" id="budget-currency-lbl">грн</span>
-              </div>
-              <div id="budget-total-toggle-icon" style="color:var(--text-muted);transition:transform .25s;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0" onclick="event.stopPropagation()">
+              <span id="budget-currency-lbl" style="display:none"></span><!-- keep for JS compat -->
+              <div id="budget-total-toggle-icon" style="color:var(--text-muted);transition:transform .25s">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
           </div>
-          <div id="budget-total-body" style="display:none;overflow:hidden">
+          <!-- Expanded body -->
+          <div id="budget-total-body" style="display:none;overflow:hidden;padding-top:14px">
+            <!-- Mode toggle -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+              <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">Режим:</span>
+              <div class="period-tabs" style="flex-shrink:0">
+                <div id="blm-auto" class="period-tab active" onclick="setBudgetLimitMode('auto')" title="Загальний ліміт = сума лімітів категорій">Авто</div>
+                <div id="blm-manual" class="period-tab" onclick="setBudgetLimitMode('manual')" title="Встановити загальний ліміт вручну">Вручну</div>
+              </div>
+              <div id="blm-manual-input" style="display:none;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)">
+                Загальний ліміт:
+                <input id="budget-total-limit" type="number" placeholder="0"
+                  oninput="saveBudgetTotalLimit()"
+                  style="width:110px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:14px;font-weight:600;outline:none;color:var(--text)">
+                <span style="font-size:13px;color:var(--text-muted)" id="budget-currency-lbl2"></span>
+              </div>
+            </div>
             <div id="budget-total-summary"></div>
           </div>
         </div>
@@ -2103,84 +2112,184 @@ function renderBudget() {
   document.getElementById('budget-sub').textContent = monthName(month) + ' ' + month.split('-')[0];
   document.getElementById('budget-currency-lbl').textContent = db.settings.currency||'грн';
 
-  // Загальний бюджет місяця
-  const totalLimit = (db.budgetLimits||{})[month] || 0;
-  document.getElementById('budget-total-limit').value = totalLimit||'';
-  const monthExp = db.expenses.filter(e => e.date && e.date.startsWith(month));
-  const totalSpent = monthExp.reduce((s,e)=>s+(e.amount||0),0);
-  const totalRemaining = Math.max(0, totalLimit - totalSpent);
-  const totalPct = totalLimit>0 ? Math.min(100,Math.round((totalSpent/totalLimit)*100)) : 0;
-  const totalOver = totalLimit>0 && totalSpent>totalLimit;
+  // ── Режим лімітів (авто = сума категорій, manual = задано вручну) ──
+  const limitMode = db.budgetLimitMode || 'auto';
+  // Sync mode UI
+  ['auto','manual'].forEach(m => {
+    const el = document.getElementById('blm-' + m);
+    if (el) el.className = 'period-tab' + (m === limitMode ? ' active' : '');
+  });
+  const manInp = document.getElementById('blm-manual-input');
+  if (manInp) manInp.style.display = limitMode === 'manual' ? 'flex' : 'none';
+  // Currency labels
+  const cur2 = db.settings?.currency || 'грн';
+  ['budget-currency-lbl','budget-currency-lbl2'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = cur2;
+  });
 
-  // ── Підрахунок лімітів по категоріях ──
+  const monthExp = db.expenses.filter(e => e.date && e.date.startsWith(month));
+  const totalSpent = monthExp.reduce((s,e) => s + (e.amount||0), 0);
   const catsWithLimit    = db.budgetCats.filter(c => c.limit > 0);
   const catsWithoutLimit = db.budgetCats.filter(c => !c.limit);
   const catsLimitSum     = catsWithLimit.reduce((s, c) => s + (c.limit||0), 0);
-  const catsLimitGap     = totalLimit > 0 ? totalLimit - catsLimitSum : null; // різниця між заг. лімітом і сумою по катах
+
+  // Effective total limit depends on mode
+  let totalLimit;
+  if (limitMode === 'auto') {
+    totalLimit = catsLimitSum; // automatically derived from categories
+    const inp = document.getElementById('budget-total-limit');
+    if (inp) inp.value = '';
+  } else {
+    totalLimit = (db.budgetLimits||{})[month] || 0;
+    const inp = document.getElementById('budget-total-limit');
+    if (inp) inp.value = totalLimit || '';
+  }
+
+  const totalRemaining = Math.max(0, totalLimit - totalSpent);
+  const totalPct  = totalLimit > 0 ? Math.min(100, Math.round((totalSpent / totalLimit) * 100)) : 0;
+  const totalOver = totalLimit > 0 && totalSpent > totalLimit;
+
+  // Collapsed hint
+  const hintEl = document.getElementById('budget-total-collapsed-hint');
+  if (hintEl) {
+    if (totalLimit > 0) {
+      const pctStr = totalPct + '%';
+      const remainStr = totalOver
+        ? '−' + fmt(totalSpent - totalLimit) + ' перевищення'
+        : fmt(totalRemaining) + ' залишок';
+      hintEl.innerHTML = `<span style="color:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--text-muted)'}">${pctStr} використано · ${remainStr} · ліміт ${fmt(totalLimit)}</span>`;
+    } else {
+      hintEl.textContent = catsWithoutLimit.length
+        ? `${catsWithoutLimit.length} категорій без ліміту`
+        : 'Усі категорії мають ліміт';
+    }
+  }
+
+  // In auto mode: big stacked bar showing how category limits fill the total
+  // In manual mode: same but with explicit total limit on top
+  const refLimit = totalLimit; // same value, kept for clarity
 
   document.getElementById('budget-total-summary').innerHTML = `
-    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px">
-      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Витрачено</div>
-        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':'var(--text)'};margin-top:3px">${fmt(totalSpent)}</div></div>
-      ${totalLimit?`
-      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Залишок</div>
-        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':totalRemaining===0?'var(--text-muted)':'var(--green)'};margin-top:3px">${totalOver?'−'+fmt(totalSpent-totalLimit):fmt(totalRemaining)}</div></div>`:''}
-      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Сума лімітів</div>
-        <div style="font-size:22px;font-weight:300;color:var(--text);margin-top:3px">${fmt(catsLimitSum)}</div></div>
-      ${totalLimit?`
-      <div><div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">${catsLimitGap>=0?'Нерозподілено':'Перевищення лімітів'}</div>
-        <div style="font-size:22px;font-weight:300;color:${catsLimitGap<0?'var(--red)':catsLimitGap===0?'var(--green)':'var(--text-muted)'};margin-top:3px">${catsLimitGap<0?'−':''}${fmt(Math.abs(catsLimitGap))}</div></div>`:''}
-      ${totalLimit?`<div style="width:100%">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px">
-          <span>${totalPct}% використано</span><span>Ліміт: ${fmt(totalLimit)}</span>
-        </div>
-        <div style="height:6px;background:var(--border);border-radius:20px;overflow:hidden">
-          <div style="height:100%;border-radius:20px;background:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--accent)'};width:${totalPct}%;transition:width .6s"></div>
-        </div>
-      </div>`:''}
-    </div>
-    <!-- ── Розбивка лімітів по категоріях ── -->
-    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Ліміти по категоріях</div>
-        <div style="display:flex;gap:10px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">
-          <span>${catsWithLimit.length} із ${db.budgetCats.length} з лімітом</span>
-          ${catsWithoutLimit.length?`<span style="color:var(--orange);font-weight:600">${catsWithoutLimit.length} без ліміту</span>`:'<span style="color:var(--green);font-weight:600">всі задані</span>'}
+    <!-- Stat row -->
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Витрачено</div>
+        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':'var(--text)'};margin-top:3px">${fmt(totalSpent)}</div>
+      </div>
+      ${refLimit ? `
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Залишок</div>
+        <div style="font-size:22px;font-weight:300;color:${totalOver?'var(--red)':totalRemaining===0?'var(--text-muted)':'var(--green)'};margin-top:3px">
+          ${totalOver ? '−'+fmt(totalSpent-refLimit) : fmt(totalRemaining)}
         </div>
       </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">${limitMode==='auto'?'Загальний (авто)':'Загальний ліміт'}</div>
+        <div style="font-size:22px;font-weight:300;color:var(--text-muted);margin-top:3px">${fmt(refLimit)}</div>
+      </div>` : ''}
+      ${limitMode==='manual' && refLimit > 0 ? `
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">${catsLimitSum<=refLimit?'Нерозподілено':'Ліміти > загальний'}</div>
+        <div style="font-size:22px;font-weight:300;color:${catsLimitSum>refLimit?'var(--red)':catsLimitSum===refLimit?'var(--green)':'var(--text-muted)'};margin-top:3px">
+          ${catsLimitSum>refLimit?'−':''}${fmt(Math.abs(refLimit-catsLimitSum))}
+        </div>
+      </div>` : ''}
+    </div>
+
+    <!-- Main progress bar (витрачено vs ліміт) -->
+    ${refLimit > 0 ? `
+    <div style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:5px">
+        <span>${totalPct}% використано</span>
+        <span>Ліміт: ${fmt(refLimit)}</span>
+      </div>
+      <div style="height:8px;background:var(--border);border-radius:20px;overflow:hidden">
+        <div style="height:100%;border-radius:20px;background:${totalOver?'var(--red)':totalPct>80?'var(--orange)':'var(--accent)'};width:${totalPct}%;transition:width .6s"></div>
+      </div>
+    </div>` : ''}
+
+    <!-- Category limits breakdown vs total limit -->
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Ліміти по категоріях</div>
+        <div style="display:flex;gap:8px;font-size:11px;flex-wrap:wrap">
+          ${catsWithoutLimit.length
+            ? `<span style="color:var(--orange);font-weight:600">${catsWithoutLimit.length} без ліміту</span>`
+            : `<span style="color:var(--green);font-weight:600">всі задані</span>`}
+          <span style="color:var(--text-muted)">${catsWithLimit.length}/${db.budgetCats.length} з лімітом</span>
+        </div>
+      </div>
+
       ${db.budgetCats.length ? `
-      <div style="display:flex;flex-direction:column;gap:7px">
+      <!-- Stacked bar: кожна категорія займає свою частку від загального ліміту -->
+      ${refLimit > 0 ? `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:5px">
+          <span>Розподіл лімітів категорій</span>
+          <span style="color:${catsLimitSum>refLimit?'var(--red)':catsLimitSum===refLimit?'var(--green)':'inherit'}">${fmt(catsLimitSum)} / ${fmt(refLimit)}</span>
+        </div>
+        <div style="height:10px;background:var(--border);border-radius:20px;overflow:hidden;display:flex">
+          ${db.budgetCats.filter(cat=>cat.limit>0).map(cat => {
+            const w = Math.min(100, Math.round((cat.limit/refLimit)*100));
+            return `<div style="height:100%;width:${w}%;background:${cat.color};flex-shrink:0" title="${cat.name}: ${fmt(cat.limit)}"></div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:7px">
+          ${db.budgetCats.filter(cat=>cat.limit>0).map(cat => {
+            const w = Math.round((cat.limit/refLimit)*100);
+            return `<div style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text-muted)">
+              <div style="width:8px;height:8px;border-radius:2px;background:${cat.color}"></div>${cat.name} ${w}%
+            </div>`;
+          }).join('')}
+          ${catsWithoutLimit.length ? `<div style="font-size:10.5px;color:var(--orange)">+${catsWithoutLimit.length} без ліміту</div>` : ''}
+        </div>
+      </div>` : ''}
+
+      <!-- Per-category rows with two bars: витрачено (thin) + ліміт відносно загального (thick) -->
+      <div style="display:flex;flex-direction:column;gap:10px">
         ${db.budgetCats.map(cat => {
           const catSpent = monthExp.filter(e=>e.catId===cat.id).reduce((s,e)=>s+(e.amount||0),0);
           const catPct   = cat.limit ? Math.min(100, Math.round((catSpent/cat.limit)*100)) : 0;
           const catOver  = cat.limit && catSpent > cat.limit;
-          const barW     = totalLimit>0 && cat.limit ? Math.min(100, Math.round((cat.limit/totalLimit)*100)) : (catsLimitSum>0 && cat.limit ? Math.min(100, Math.round((cat.limit/catsLimitSum)*100)) : 0);
-          return `<div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;min-height:28px">
-            <div style="display:flex;align-items:center;gap:7px;min-width:0">
-              <div style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:${cat.color}"></div>
-              <span style="font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat.name}</span>
+          // width of this category's limit bar relative to the effective total
+          const limitBarW = refLimit > 0 && cat.limit ? Math.min(100, Math.round((cat.limit/refLimit)*100)) : 100;
+          // spent fills that limit-bar proportionally
+          const spentOfLimit = cat.limit ? Math.min(100, Math.round((catSpent/cat.limit)*100)) : 0;
+
+          return `<div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px;gap:6px">
+              <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                <div style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:${cat.color}"></div>
+                <span style="font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat.name}</span>
+              </div>
+              <span style="font-size:12px;color:${catOver?'var(--red)':'var(--text-muted)'};white-space:nowrap;flex-shrink:0">
+                ${fmt(catSpent)}${cat.limit ? ' / '+fmt(cat.limit) : ' — без ліміту'}
+              </span>
             </div>
-            <div style="font-size:12px;color:${catOver?'var(--red)':'var(--text-muted)'};white-space:nowrap;text-align:right">
-              ${fmt(catSpent)}${cat.limit?` / ${fmt(cat.limit)}`:''}
+            ${cat.limit ? `
+            <!-- Outer bar = частка цієї категорії від загального ліміту -->
+            <div style="position:relative;height:7px;background:var(--border);border-radius:20px;overflow:hidden">
+              <!-- limit allocation band -->
+              <div style="position:absolute;left:0;top:0;height:100%;width:${limitBarW}%;background:${cat.color}22;border-radius:20px"></div>
+              <!-- spent fill inside the limit band -->
+              <div style="position:absolute;left:0;top:0;height:100%;width:${Math.round(limitBarW * spentOfLimit / 100)}%;background:${catOver?'var(--red)':catPct>80?'var(--orange)':cat.color};border-radius:20px;transition:width .5s"></div>
             </div>
-            <div style="width:72px">
-              ${cat.limit ? `
-              <div style="height:4px;background:var(--border);border-radius:20px;overflow:hidden">
-                <div style="height:100%;border-radius:20px;background:${catOver?'var(--red)':catPct>80?'var(--orange)':cat.color};width:${catPct}%;transition:width .5s"></div>
-              </div>` : `<span style="font-size:10px;color:var(--text-muted);font-style:italic">без ліміту</span>`}
-            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:3px">
+              <span>${catPct}% ліміту категорії${refLimit>0?' · '+limitBarW+'% загального':''}</span>
+              ${catOver ? `<span style="color:var(--red);font-weight:600">+${fmt(catSpent-cat.limit)} перевищення</span>` : ''}
+            </div>` :
+            `<div style="height:7px;background:var(--border);border-radius:20px"></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;font-style:italic">ліміт не встановлено</div>`}
           </div>`;
         }).join('')}
       </div>
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px">
-        <div style="font-size:12px;font-weight:700;color:var(--text)">Разом</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text);text-align:right">${fmt(totalSpent)} / ${fmt(catsLimitSum)}</div>
-        <div style="width:72px">
-          ${catsLimitSum>0?`
-          <div style="height:4px;background:var(--border);border-radius:20px;overflow:hidden">
-            <div style="height:100%;border-radius:20px;background:${totalSpent>catsLimitSum?'var(--red)':Math.round((totalSpent/catsLimitSum)*100)>80?'var(--orange)':'var(--accent)'};width:${Math.min(100,Math.round((totalSpent/catsLimitSum)*100))}%;transition:width .5s"></div>
-          </div>`:''}
-        </div>
+
+      <!-- Total row -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span style="font-size:12px;font-weight:700;color:var(--text)">Всього витрачено / ліміт</span>
+        <span style="font-size:13px;font-weight:700;color:${totalOver?'var(--red)':'var(--text)'}">
+          ${fmt(totalSpent)} / ${fmt(refLimit||catsLimitSum)}
+        </span>
       </div>` : `<div style="font-size:12px;color:var(--text-muted);font-style:italic">Немає категорій</div>`}
     </div>`;
 
@@ -2226,17 +2335,20 @@ function renderBudget() {
 }
 
 window.toggleBudgetTotal = function(forceOpen) {
-  const body   = document.getElementById('budget-total-body');
-  const icon   = document.getElementById('budget-total-toggle-icon');
-  const wrap   = document.getElementById('budget-total-limit-wrap');
-  const hint   = document.getElementById('budget-total-collapsed-hint');
+  const body = document.getElementById('budget-total-body');
+  const icon = document.getElementById('budget-total-toggle-icon');
   if (!body) return;
-  const isOpen = body.style.display !== 'none';
-  const open   = forceOpen !== undefined ? forceOpen : !isOpen;
-  body.style.display  = open ? 'block' : 'none';
-  wrap.style.display  = open ? 'flex'  : 'none';
+  const open = forceOpen !== undefined ? forceOpen : body.style.display === 'none';
+  body.style.display   = open ? 'block' : 'none';
   icon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
-  hint.style.display  = open ? 'none'  : 'block';
+};
+
+window.setBudgetLimitMode = function(mode) {
+  if (!db.budgetLimitMode || db.budgetLimitMode !== mode) {
+    db.budgetLimitMode = mode;
+    save();
+  }
+  renderBudget();
 };
 
 window.saveBudgetTotalLimit = function() {
