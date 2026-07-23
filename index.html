@@ -10,6 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%237c6ef7'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='800' font-size='26' fill='white'>K·P</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --sidebar-bg: #12131a; --sidebar-hover: #1e1f2b; --sidebar-active: #252636;
@@ -538,6 +539,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
         <div><div class="section-title">Бюджет</div><div class="section-sub" id="budget-sub"></div></div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <input type="month" id="budget-month" onchange="renderBudget()" style="background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;">
+          <button class="btn btn-outline" onclick="openImportModal()"><i class="ph-light ph-upload-simple" style="font-size:15px"></i> Імпорт виписки</button>
           <button class="btn btn-primary" onclick="openBudgetModal()"><i class="ph-light ph-plus" style="font-size:15px"></i> Категорія</button>
         </div>
       </div>
@@ -1252,6 +1254,61 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
   </div>
 </div></div>
 
+<!-- IMPORT BANK STATEMENT MODAL -->
+<div class="overlay" id="import-modal"><div class="modal" style="max-width:760px">
+  <div class="modal-drag-bar" id="import-modal-bar">
+    <div style="width:28px"></div>
+    <span class="modal-drag-title">Імпорт виписки з банку</span>
+    <button class="modal-close-x" onclick="closeModal('import-modal')">×</button>
+  </div>
+  <div class="modal-body">
+
+    <div id="imp-step-upload">
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">
+        Завантажте виписку у форматі <b>CSV</b> або <b>Excel (.xlsx/.xls)</b> — банк може бути будь-який. Після завантаження перевірте колонки та категорії перед імпортом.
+      </div>
+      <input type="file" id="imp-file" accept=".csv,.xlsx,.xls" onchange="handleImportFile(event)">
+      <div id="imp-file-status" style="font-size:12.5px;color:var(--text-muted);margin-top:10px"></div>
+    </div>
+
+    <div id="imp-step-columns" style="display:none;margin-top:16px">
+      <div class="form-grid" style="margin-bottom:6px">
+        <div class="form-row"><label>Колонка з датою</label><select id="imp-col-date" onchange="reparseImportRows()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;width:100%"></select></div>
+        <div class="form-row"><label>Колонка з сумою</label><select id="imp-col-amount" onchange="reparseImportRows()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;width:100%"></select></div>
+        <div class="form-row full"><label>Колонка з описом / призначенням платежу</label><select id="imp-col-desc" onchange="reparseImportRows()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none;min-height:40px;-webkit-appearance:none;width:100%"></select></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-muted);margin:8px 0 4px;cursor:pointer">
+        <input type="checkbox" id="imp-only-negative" checked onchange="reparseImportRows()"> Імпортувати лише рядки зі списанням (від'ємна сума)
+      </label>
+    </div>
+
+    <div id="imp-step-preview" style="display:none;margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div id="imp-summary" style="font-size:12.5px;color:var(--text-muted)"></div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;white-space:nowrap">
+          <input type="checkbox" id="imp-only-unresolved" onchange="renderImportPreview()"> Лише невизначені
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;background:var(--bg);padding:10px 12px;border-radius:10px">
+        <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">Застосувати до всіх невизначених:</span>
+        <select id="imp-bulk-cat" style="flex:1;min-width:140px;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:12.5px;outline:none;-webkit-appearance:none;"></select>
+        <button class="btn btn-outline btn-sm" onclick="applyBulkImportCat()">Застосувати</button>
+      </div>
+      <div class="table-wrap" style="max-height:340px;overflow-y:auto">
+        <table>
+          <thead><tr><th style="width:26px"></th><th>Дата</th><th>Опис</th><th>Сума</th><th>Категорія</th></tr></thead>
+          <tbody id="imp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('import-modal')">Скасувати</button>
+    <button class="btn btn-primary" id="imp-import-btn" style="display:none" onclick="finalizeImport()">Імпортувати</button>
+  </div>
+</div></div>
+
 <div class="overlay" id="income-modal"><div class="modal">
   <div class="modal-drag-bar" id="income-modal-bar">
     <div style="width:28px"></div>
@@ -1312,7 +1369,7 @@ const auth = firebase.auth();
 const DOCREF = db_fs.collection('kpay').doc('main');
 
 // ── STATE ──
-let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], inventory:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{} };
+let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], inventory:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{}, importRules:[] };
 let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#7c6ef7', saveTimer=null, isOnline=true;
 const COLORS=['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4','#8b5cf6','#14b8a6'];
@@ -1343,6 +1400,7 @@ async function loadFromFirebase() {
       if (!db.budgetLimits) db.budgetLimits = {};
       if (!db.envelopes) db.envelopes = [];
       if (!db.inventory) db.inventory = [];
+      if (!db.importRules) db.importRules = [];
       if (db.savingsBase === undefined) db.savingsBase = 0;
     } else {
       seedDemoData();
@@ -2307,6 +2365,250 @@ function renderExpenses() {
   }).join('') : `<tr><td colspan="5"><div class="empty">Немає витрат за цей місяць</div></td></tr>`;
 }
 window.deleteExpense = function(id) { db.expenses=db.expenses.filter(e=>e.id!==id); save(); renderBudget(); };
+
+// ── ІМПОРТ ВИПИСКИ З БАНКУ ──
+let impRawAOA = [];      // сирі рядки з файлу (масив масивів)
+let impHeaderRowIdx = 0; // індекс рядка-заголовка
+let impRows = [];        // розпізнані транзакції: {date, amount, desc, catId, include}
+
+// Вбудований словник: типові мерчанти → підказки назв категорій.
+// Якщо назва категорії користувача містить одну з підказок — пропонуємо саме її.
+const IMPORT_DICTIONARY = [
+  { re: /сільпо|атб|ашан|фора\b|варус|novus|новус|метро\b|delifrance|глово|glovo|bolt ?food|克|піца|pizza|суші|kfc|макдональдз|mcdonald/i, hints:['їж','прод','харч','кафе','ресторан','супермарк'] },
+  { re: /\bwog\b|окко|okko|\bupg\b|азс|паркінг|uklon|\bbolt\b|\buber\b|таксі/i, hints:['авто','транспорт','пальн','бензин','таксі'] },
+  { re: /netflix|spotify|megogo|youtube|steam|playstation|apple\.com\/bill|google.*play/i, hints:['розваг','підпис','дозвіл'] },
+  { re: /аптека|apteka|фармаці|клінік|лікарня|медцентр/i, hints:['здоров','аптек','медиц'] },
+  { re: /\bzara\b|h&m|lc waikiki|intertop|prom\.ua|розетка|rozetka/i, hints:['одяг','шопінг','покупк'] },
+  { re: /kyivstar|київстар|vodafone|lifecell|укртелеком/i, hints:['звʼязок','зв\'язок','мобільн','інтернет'] },
+  { re: /booking|airbnb|ryanair|wizzair|авіа|укрзалізниця/i, hints:['подорож','відпочин'] },
+  { re: /київенерго|водоканал|теплокомун|обленерго|нафтогаз/i, hints:['комунал','дім','житло','квартир'] },
+];
+
+window.openImportModal = function() {
+  impRawAOA = []; impRows = [];
+  document.getElementById('imp-step-upload').style.display = '';
+  document.getElementById('imp-step-columns').style.display = 'none';
+  document.getElementById('imp-step-preview').style.display = 'none';
+  document.getElementById('imp-import-btn').style.display = 'none';
+  document.getElementById('imp-file').value = '';
+  document.getElementById('imp-file-status').textContent = '';
+  document.getElementById('import-modal').classList.add('open');
+};
+
+function parseAmountFlexible(raw) {
+  if (raw === null || raw === undefined || raw === '') return NaN;
+  if (typeof raw === 'number') return raw;
+  let s = String(raw).trim().replace(/\u00A0/g, ' ').replace(/\s+/g, '');
+  s = s.replace(/[^\d,.\-()]/g, '');
+  let neg = false;
+  if (s.startsWith('(') && s.endsWith(')')) { neg = true; s = s.slice(1, -1); }
+  if (s.includes(',') && s.includes('.')) {
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if (s.includes(',')) {
+    const parts = s.split(',');
+    if (parts[parts.length - 1].length === 2) s = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+    else s = s.replace(/,/g, '');
+  }
+  let n = parseFloat(s);
+  if (isNaN(n)) return NaN;
+  if (neg) n = -Math.abs(n);
+  return n;
+}
+
+function parseDateFlexible(raw) {
+  if (raw === null || raw === undefined || raw === '') return '';
+  if (raw instanceof Date && !isNaN(raw)) {
+    return `${raw.getFullYear()}-${String(raw.getMonth()+1).padStart(2,'0')}-${String(raw.getDate()).padStart(2,'0')}`;
+  }
+  const s = String(raw).trim();
+  let m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+  if (m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+  m = s.match(/^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+  if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  return s.slice(0, 10);
+}
+
+function parseCSVLine(line, delim) {
+  const out = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (ch === delim && !inQ) { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+function parseCSVText(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (!lines.length) return [];
+  const delims = [',', ';', '\t'];
+  let delim = ',', maxCount = -1;
+  delims.forEach(d => { const c = lines[0].split(d).length; if (c > maxCount) { maxCount = c; delim = d; } });
+  return lines.map(line => parseCSVLine(line, delim));
+}
+
+function extractMerchantToken(desc) {
+  const cleaned = String(desc || '').toLowerCase().replace(/[0-9*]/g, ' ').replace(/[^\p{L}\s]/gu, ' ').trim();
+  const words = cleaned.split(/\s+/).filter(w => w.length >= 3);
+  return words[0] || null;
+}
+
+function suggestCategory(desc) {
+  if (!desc) return null;
+  const dl = desc.toLowerCase();
+  if (db.importRules) {
+    for (const rule of db.importRules) {
+      if (rule.token && dl.includes(rule.token) && db.budgetCats.find(c => c.id === rule.catId)) return rule.catId;
+    }
+  }
+  for (const entry of IMPORT_DICTIONARY) {
+    if (entry.re.test(dl)) {
+      const cat = db.budgetCats.find(c => entry.hints.some(h => c.name.toLowerCase().includes(h)));
+      if (cat) return cat.id;
+    }
+  }
+  return null;
+}
+
+function learnImportRule(desc, catId) {
+  const token = extractMerchantToken(desc);
+  if (!token) return;
+  if (!db.importRules) db.importRules = [];
+  const existing = db.importRules.find(r => r.token === token);
+  if (existing) existing.catId = catId; else db.importRules.push({ token, catId });
+}
+
+window.handleImportFile = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('imp-file-status');
+  statusEl.textContent = 'Обробка файлу…';
+  const isCSV = /\.csv$/i.test(file.name);
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let aoa;
+      if (isCSV) {
+        aoa = parseCSVText(e.target.result);
+      } else {
+        const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+      }
+      impRawAOA = aoa.filter(r => r && r.some(c => c !== '' && c !== null && c !== undefined));
+      if (!impRawAOA.length) { statusEl.textContent = 'Не вдалося прочитати файл, або він порожній.'; return; }
+      setupImportColumns();
+    } catch (err) {
+      statusEl.textContent = 'Помилка читання файлу: ' + err.message;
+    }
+  };
+  reader.onerror = function() { statusEl.textContent = 'Не вдалося прочитати файл.'; };
+  if (isCSV) reader.readAsText(file, 'UTF-8'); else reader.readAsArrayBuffer(file);
+};
+
+function setupImportColumns() {
+  const headerKeywords = ['дата','сум','опис','деталі','призначення','категорі','карт','operation','date','amount'];
+  let headerIdx = 0, bestScore = -1;
+  for (let i = 0; i < Math.min(impRawAOA.length, 6); i++) {
+    const row = impRawAOA[i].map(c => String(c || '').toLowerCase());
+    const score = row.filter(c => headerKeywords.some(k => c.includes(k))).length;
+    if (score > bestScore) { bestScore = score; headerIdx = i; }
+  }
+  impHeaderRowIdx = headerIdx;
+  const headerRow = impRawAOA[headerIdx].map((c, i) => String(c || '').trim() || `Колонка ${i+1}`);
+
+  const guess = (keys) => headerRow.findIndex(h => keys.some(k => h.toLowerCase().includes(k)));
+  const dateIdx = guess(['дата','date']);
+  const descIdx = guess(['опис','деталі','призначення','комент','merchant','опера','description']);
+  let amountIdx = headerRow.findIndex(h => {
+    const hl = h.toLowerCase();
+    return hl.includes('сум') && !hl.includes('залиш') && !hl.includes('баланс') && !hl.includes('комі') && !hl.includes('кешб');
+  });
+  if (amountIdx === -1) amountIdx = guess(['сум','amount','val']);
+
+  const opts = headerRow.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+  ['imp-col-date','imp-col-amount','imp-col-desc'].forEach(id => document.getElementById(id).innerHTML = opts);
+  if (dateIdx >= 0)   document.getElementById('imp-col-date').value = dateIdx;
+  if (amountIdx >= 0) document.getElementById('imp-col-amount').value = amountIdx;
+  if (descIdx >= 0)   document.getElementById('imp-col-desc').value = descIdx;
+
+  document.getElementById('imp-step-columns').style.display = '';
+  document.getElementById('imp-file-status').textContent = `Файл прочитано: рядків даних — ${impRawAOA.length - headerIdx - 1}.`;
+  reparseImportRows();
+}
+
+window.reparseImportRows = function() {
+  const dateIdx = parseInt(document.getElementById('imp-col-date').value);
+  const amountIdx = parseInt(document.getElementById('imp-col-amount').value);
+  const descIdx = parseInt(document.getElementById('imp-col-desc').value);
+  const onlyNeg = document.getElementById('imp-only-negative').checked;
+  const dataRows = impRawAOA.slice(impHeaderRowIdx + 1);
+
+  impRows = [];
+  dataRows.forEach(row => {
+    if (!row) return;
+    const amount = parseAmountFlexible(row[amountIdx]);
+    if (isNaN(amount) || amount === 0) return;
+    if (onlyNeg && amount >= 0) return;
+    const date = parseDateFlexible(row[dateIdx]);
+    const desc = String(row[descIdx] || '').trim();
+    impRows.push({ date, amount: Math.abs(amount), desc, catId: suggestCategory(desc) || '', include: true });
+  });
+
+  document.getElementById('imp-step-preview').style.display = impRows.length ? '' : 'none';
+  document.getElementById('imp-import-btn').style.display = impRows.length ? '' : 'none';
+  document.getElementById('imp-bulk-cat').innerHTML = '<option value="">— оберіть категорію —</option>' +
+    db.budgetCats.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+  if (!impRows.length) document.getElementById('imp-file-status').textContent = 'За обраними колонками не знайдено жодної транзакції — перевірте вибір колонок.';
+  renderImportPreview();
+};
+
+window.renderImportPreview = function() {
+  const onlyUnresolved = document.getElementById('imp-only-unresolved').checked;
+  const resolved = impRows.filter(r => r.catId).length;
+  document.getElementById('imp-summary').textContent =
+    `Знайдено ${impRows.length} витрат. Автоматично визначено категорію для ${resolved}, потребують уваги — ${impRows.length - resolved}.`;
+
+  const rowOpts = (selId) => '<option value="">— оберіть —</option>' +
+    db.budgetCats.map(c => `<option value="${c.id}" ${c.id === selId ? 'selected' : ''}>${c.icon || ''} ${c.name}</option>`).join('');
+
+  const tb = document.getElementById('imp-tbody');
+  tb.innerHTML = impRows.map((r, i) => {
+    if (onlyUnresolved && r.catId) return '';
+    const unresolved = !r.catId;
+    return `<tr style="${unresolved ? 'background:var(--orange-light)' : ''}">
+      <td><input type="checkbox" ${r.include ? 'checked' : ''} onchange="impRows[${i}].include=this.checked"></td>
+      <td style="white-space:nowrap">${r.date ? new Date(r.date+'T12:00:00').toLocaleDateString('uk-UA') : '—'}</td>
+      <td style="color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.desc||'').replace(/"/g,'&quot;')}">${r.desc || '—'}</td>
+      <td style="font-weight:700;color:var(--red);white-space:nowrap">−${fmt(r.amount)}</td>
+      <td><select onchange="impRows[${i}].catId=this.value;renderImportPreview()" style="min-width:150px;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-family:inherit;font-size:12.5px;outline:none;-webkit-appearance:none;">${rowOpts(r.catId)}</select></td>
+    </tr>`;
+  }).join('');
+};
+
+window.applyBulkImportCat = function() {
+  const catId = document.getElementById('imp-bulk-cat').value;
+  if (!catId) { alert('Оберіть категорію'); return; }
+  impRows.forEach(r => { if (r.include && !r.catId) r.catId = catId; });
+  renderImportPreview();
+};
+
+window.finalizeImport = function() {
+  const toImport = impRows.filter(r => r.include && r.catId && r.date);
+  const skipped = impRows.filter(r => r.include).length - toImport.length;
+  if (!toImport.length) { alert('Немає жодної витрати з визначеною категорією для імпорту.'); return; }
+  toImport.forEach(r => {
+    db.expenses.push({ id: uid(), catId: r.catId, amount: r.amount, date: r.date, desc: r.desc });
+    learnImportRule(r.desc, r.catId);
+  });
+  save();
+  closeModal('import-modal');
+  renderBudget();
+  alert(`Імпортовано ${toImport.length} витрат.` + (skipped ? ` Пропущено ${skipped} — без обраної категорії.` : ''));
+};
 
 // ── INCOME ──
 window.openIncomeModal = function(id) {
@@ -3823,7 +4125,7 @@ window.saveSettings = function() {
 window.resetSettings = function() { db.settings={pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}; save(); loadSettings(); showToast('ok','✓ Скинуто до стандартних'); };
 window.exportData = function() { const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='kpay_backup_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); };
 window.importData = function(e) { const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(d.employees&&d.payroll){db=d;saveToFirebase();renderDashboard();showToast('ok','✓ Дані імпортовано');} }catch{alert('Помилка файлу');} }; r.readAsText(file); };
-window.clearData = function() { db={employees:[],payroll:[],budgetCats:[],expenses:[],incomeCats:[],incomes:[],envelopes:[],savingsBase:0,savingsBaseNote:'',budgetLimits:{},settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}}; saveToFirebase(); goto('dashboard'); };
+window.clearData = function() { db={employees:[],payroll:[],budgetCats:[],expenses:[],incomeCats:[],incomes:[],envelopes:[],savingsBase:0,savingsBaseNote:'',budgetLimits:{},importRules:[],settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}}; saveToFirebase(); goto('dashboard'); };
 window.clearPayrollOnly = function() { if(!confirm('Видалити всі записи нарахувань та історію?')) return; db.payroll=[]; save(); showToast('ok','✓ Нарахування очищено'); renderDashboard(); updatePendingBadge(); };
 window.clearOrphanPayroll = function() {
   const before=db.payroll.length;
