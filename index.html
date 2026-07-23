@@ -7,31 +7,31 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="K-Pay">
 <title>K-Pay · Облік зарплати</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%237c6ef7'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='800' font-size='26' fill='white'>K·P</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='32' fill='%23181716'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia,serif' font-weight='600' font-size='22' fill='%23c5a059'>K·P</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root {
-  --sidebar-bg: #12131a; --sidebar-hover: #1e1f2b; --sidebar-active: #252636;
-  --sidebar-text: #9192a6; --sidebar-text-active: #fff;
-  --bg: #f4f5f9; --white: #ffffff; --border: #e8e9ef;
-  --text: #1a1b2e; --text-muted: #8b8fa8;
-  --accent: #7c6ef7; --accent-light: #ede9ff;
-  --green: #22c55e; --green-light: #dcfce7;
-  --red: #ef4444; --red-light: #fee2e2;
-  --orange: #f97316; --orange-light: #ffedd5;
-  --blue: #3b82f6; --blue-light: #dbeafe;
-  --yellow: #eab308; --yellow-light: #fef9c3;
-  --card-r: 14px; --shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --sidebar-bg: #181716; --sidebar-hover: #242220; --sidebar-active: #2d2a27;
+  --sidebar-text: #8c857f; --sidebar-text-active: #f4f1ea;
+  --bg: #f9f8f5; --white: #ffffff; --border: #e6e3dc; --border-subtle: #f0ede6;
+  --text: #211f1e; --text-muted: #8a847c;
+  --accent: #2c2a29; --accent-light: #eeeae1; --gold-accent: #c5a059;
+  --green: #4a6b53; --green-light: #edf2ee;
+  --red: #8c4a4a; --red-light: #f7eded;
+  --orange: #a66e38; --orange-light: #f7f2ed;
+  --blue: #4a637d; --blue-light: #edf1f5;
+  --yellow: #9e8238; --yellow-light: #f7f5ed;
+  --card-r: 12px; --shadow: 0 4px 20px rgba(0,0,0,.02), 0 1px 3px rgba(0,0,0,.03);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html { height: -webkit-fill-available; }
-body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; font-size: 14px; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; font-size: 14px; letter-spacing: -0.01em; }
 
 /* LOADING */
 #loading-screen { position: fixed; inset: 0; background: var(--sidebar-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 14px; transition: opacity .4s; }
-.ld-logo { width: 68px; height: 68px; border-radius: 20px; background: linear-gradient(135deg,#7c6ef7,#a78bfa); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 22px; letter-spacing: -.02em; }
+.ld-logo { width: 68px; height: 68px; border-radius: 50%; background: var(--sidebar-bg); border: 1px solid var(--gold-accent); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-weight: 400; color: var(--gold-accent); font-size: 20px; letter-spacing: .05em; }
 .ld-name { color: #fff; font-weight: 800; font-size: 24px; letter-spacing: -.02em; }
 .ld-sub { color: var(--sidebar-text); font-size: 13px; }
 .ld-bar { width: 160px; height: 3px; background: rgba(255,255,255,.1); border-radius: 20px; overflow: hidden; margin-top: 6px; }
@@ -42,9 +42,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* SYNC TOAST */
 #sync-toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 300; padding: 8px 18px; border-radius: 20px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
 #sync-toast.show { opacity: 1; }
-#sync-toast.syncing { background: #fef9c3; color: #854d0e; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
-#sync-toast.ok { background: var(--green-light); color: #15803d; box-shadow: 0 4px 20px rgba(0,0,0,.10); }
-#sync-toast.err { background: var(--red-light); color: var(--red); box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+#sync-toast.syncing { background: rgba(24, 23, 22, 0.9); color: #ded8ce; box-shadow: 0 4px 20px rgba(0,0,0,.12); border: 1px solid rgba(255,255,255,0.1); }
+#sync-toast.ok { background: rgba(255,255,255,.95); color: var(--green); box-shadow: 0 4px 20px rgba(0,0,0,.10); border: 1px solid var(--border); }
+#sync-toast.err { background: rgba(255,255,255,.95); color: var(--red); box-shadow: 0 4px 20px rgba(0,0,0,.12); border: 1px solid var(--border); }
 .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 .toast-dot.spin { animation: tdot .8s linear infinite; }
 @keyframes tdot { 0%,100%{opacity:1} 50%{opacity:.25} }
@@ -52,23 +52,23 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* SIDEBAR */
 .sidebar { width: 240px; flex-shrink: 0; background: var(--sidebar-bg); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; overflow-y: auto; padding-bottom: max(20px, env(safe-area-inset-bottom)); transition: transform .25s ease; }
 .sidebar-logo { padding: 20px 18px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.07); margin-bottom: 10px; }
-.logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg,#7c6ef7,#a78bfa); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 13px; flex-shrink: 0; }
-.logo-text { font-weight: 800; color: #fff; font-size: 17px; letter-spacing: -.02em; }
+.logo-icon { width: 34px; height: 34px; border-radius: 50%; background: transparent; border: 1px solid rgba(197, 160, 89, 0.4); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-weight: 400; color: var(--gold-accent); font-size: 12px; flex-shrink: 0; }
+.logo-text { font-family: 'Cinzel', serif; font-weight: 400; color: var(--sidebar-text-active); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; }
 .logo-sub { font-size: 11px; color: var(--sidebar-text); }
-.fb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px rgba(34,197,94,.25); margin-left: auto; flex-shrink: 0; transition: background .3s; }
-.fb-dot.off { background: #4b4c63; box-shadow: none; }
+.fb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px rgba(74,107,83,.25); margin-left: auto; flex-shrink: 0; transition: background .3s; }
+.fb-dot.off { background: #524e4a; box-shadow: none; }
 .nav-section { padding: 0 10px; }
-.nav-section-label { font-size: 10px; color: #4b4c63; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; padding: 10px 10px 4px; }
+.nav-section-label { font-size: 9.5px; color: #66615c; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; padding: 10px 10px 4px; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; cursor: pointer; color: var(--sidebar-text); font-size: 13.5px; font-weight: 500; transition: all .16s; position: relative; user-select: none; min-height: 44px; }
-.nav-item:hover { background: var(--sidebar-hover); color: #c5c6d8; }
+.nav-item:hover { background: var(--sidebar-hover); color: var(--sidebar-text-active); }
 .nav-item:active { transform: scale(.98); }
 .nav-item.active { background: var(--sidebar-active); color: #fff; }
-.nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; background: var(--accent); border-radius: 0 3px 3px 0; }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 2px; height: 18px; background: var(--gold-accent); border-radius: 0 2px 2px 0; }
 .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; min-width: 20px; text-align: center; }
 .sidebar-footer { margin-top: auto; padding: 14px 10px 0; border-top: 1px solid rgba(255,255,255,.07); }
 .user-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; cursor: pointer; transition: background .15s; min-height: 50px; }
 .user-card:hover { background: var(--sidebar-hover); }
-.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#7c6ef7,#f472b6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: #2e2a27; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: var(--gold-accent); font-family: 'Cinzel', serif; font-weight: 400; font-size: 13px; flex-shrink: 0; }
 .user-name { font-size: 13px; color: #fff; font-weight: 600; }
 .user-role { font-size: 11px; color: var(--sidebar-text); }
 .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 49; }
@@ -79,12 +79,12 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* TOPBAR */
 .topbar { height: 62px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 14px; position: sticky; top: 0; z-index: 40; }
 .topbar-menu-btn { display: none; width: 40px; height: 40px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; color: var(--text); }
-.topbar-title { font-size: 19px; font-weight: 700; flex: 1; }
+.topbar-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 400; letter-spacing: .04em; flex: 1; }
 .topbar-search { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 8px 14px; width: 210px; }
 .topbar-search input { background: none; border: none; outline: none; font-family: inherit; font-size: 13px; color: var(--text); width: 100%; }
 .topbar-search svg { color: var(--text-muted); flex-shrink: 0; }
 .btn-main { display: flex; align-items: center; gap: 7px; background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 9px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; min-height: 40px; white-space: nowrap; }
-.btn-main:hover { background: #6a5ce0; }
+.btn-main:hover { background: #111010; }
 .btn-main:active { transform: scale(.97); }
 .btn-main .lbl { display: inline; }
 
@@ -104,7 +104,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 /* SECTION HEADER */
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-.section-title { font-size: 18px; font-weight: 700; }
+.section-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 400; letter-spacing: .02em; }
 .section-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 /* STATS */
@@ -121,28 +121,28 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* CARD */
 .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--card-r); padding: 20px 22px; box-shadow: var(--shadow); margin-bottom: 16px; }
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
-.card-title { font-size: 14px; font-weight: 700; }
+.card-title { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
 .card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
 /* BUTTONS */
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; min-height: 38px; user-select: none; }
 .btn:active { transform: scale(.96); }
 .btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #6a5ce0; }
+.btn-primary:hover { background: #000; }
 .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
 .btn-outline:hover { background: var(--accent-light); }
 .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
 .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 .btn-danger { background: var(--red-light); color: var(--red); }
-.btn-danger:hover { background: #fecaca; }
+.btn-danger:hover { background: #f0dfdf; }
 .btn-success { background: var(--green-light); color: var(--green); }
-.btn-success:hover { background: #bbf7d0; }
+.btn-success:hover { background: #e3e8e4; }
 .btn-sm { padding: 6px 11px; font-size: 12px; border-radius: 7px; min-height: 34px; }
 
 /* PROGRESS */
 .progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
 .progress-track { height: 6px; background: var(--bg); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
-.progress-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg,#7c6ef7,#a78bfa); transition: width .8s cubic-bezier(.4,0,.2,1); }
+.progress-fill { height: 100%; border-radius: 20px; background: var(--accent); transition: width .8s cubic-bezier(.4,0,.2,1); }
 .progress-meta { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
 .progress-meta-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -163,7 +163,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 /* BADGE */
 .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .badge-green { background: var(--green-light); color: var(--green); }
-.badge-yellow { background: var(--yellow-light); color: #854d0e; }
+.badge-yellow { background: var(--yellow-light); color: #7a5f2a; }
 .badge-red { background: var(--red-light); color: var(--red); }
 .badge-blue { background: var(--blue-light); color: var(--blue); }
 .badge-purple { background: var(--accent-light); color: var(--accent); }
@@ -176,15 +176,15 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 /* CHART */
 .chart-12 { display: flex; align-items: flex-end; gap: 4px; height: 120px; padding-top: 8px; }
 .cbar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
-.cbar { width: 100%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg,#a78bfa,#7c6ef7); transition: height .5s ease; cursor: pointer; position: relative; min-height: 2px; }
-.cbar.paid { background: linear-gradient(180deg,#34d399,#22c55e); }
+.cbar { width: 100%; border-radius: 3px 3px 0 0; background: var(--accent); opacity: .85; transition: height .5s ease, opacity .2s; cursor: pointer; position: relative; min-height: 2px; }
+.cbar.paid { background: var(--green); opacity: 1; }
 .cbar:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; font-family: 'Plus Jakarta Sans',sans-serif; font-weight: 500; z-index: 10; pointer-events: none; }
 .cbar-label { font-size: 9.5px; color: var(--text-muted); font-weight: 500; }
 
 /* BUDGET */
 .budget-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap: 12px; }
 .budget-item { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: all .15s; position: relative; }
-.budget-item:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(124,110,247,.12); }
+.budget-item:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(44,42,41,.10); }
 .budget-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .budget-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .budget-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
@@ -218,12 +218,12 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 .modal-drag-bar { height:48px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 20px; border-bottom:1px solid var(--border); cursor:grab; user-select:none; background:var(--white); border-radius:18px 18px 0 0; }
 .modal-drag-bar:active { cursor:grabbing; }
 .modal-drag-dot { width:32px; height:4px; background:var(--border); border-radius:20px; margin:0 auto; }
-.modal-drag-title { font-size:15px; font-weight:700; position:absolute; left:50%; transform:translateX(-50%); pointer-events:none; }
+.modal-drag-title { font-family: 'Cinzel', serif; font-size:15px; font-weight:400; letter-spacing:.03em; position:absolute; left:50%; transform:translateX(-50%); pointer-events:none; }
 .modal-close-x { width:28px; height:28px; border-radius:50%; border:none; background:var(--bg); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:18px; line-height:1; transition:all .15s; flex-shrink:0; }
 .modal-close-x:hover { background:var(--red-light); color:var(--red); }
 .modal-body { padding:20px 24px; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch; }
 .modal-handle { display:none; }
-.modal-title { font-size:17px; font-weight:800; margin-bottom:16px; }
+.modal-title { font-family: 'Cinzel', serif; font-size:17px; font-weight:400; letter-spacing:.02em; margin-bottom:16px; }
 .modal-footer { display:flex; gap:10px; padding:14px 24px; border-top:1px solid var(--border); justify-content:flex-end; flex-wrap:wrap; flex-shrink:0; background:var(--white); border-radius:0 0 18px 18px; }
 @media (max-width:600px) {
   .overlay { align-items:flex-end; padding:0; }
@@ -245,7 +245,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 /* PAYSLIP */
 .slip-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
 .slip-row:last-child { border-bottom: none; }
-.slip-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: linear-gradient(135deg,#ede9ff,#dbeafe); border-radius: 12px; margin-top: 12px; font-weight: 800; font-size: 16px; }
+.slip-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: linear-gradient(135deg,#f4efe3,#f0ede6); border-radius: 12px; margin-top: 12px; font-weight: 700; font-size: 16px; }
 .sep { height: 1px; background: var(--border); margin: 12px 0; }
 
 /* COLOR PICKER */
@@ -261,7 +261,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 /* FIREBASE STATUS PILL */
 .fb-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .fb-pill.online { background: var(--green-light); color: var(--green); }
-.fb-pill.offline { background: var(--yellow-light); color: #854d0e; }
+.fb-pill.offline { background: var(--yellow-light); color: #7a5f2a; }
 
 .badge-orange { background: var(--orange-light); color: var(--orange); }
 
@@ -307,19 +307,19 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 .pay-edit-panel .form-grid { grid-template-columns:1fr 1fr; }
 
 /* DEBT BADGE */
-.badge-debt { background:#fff3e0; color:#e65100; font-weight:700; }
+.badge-debt { background:var(--orange-light); color:var(--orange); font-weight:600; }
 
 /* ── SAVINGS ── */
-.savings-balance-card { background: linear-gradient(135deg,#7c6ef7 0%,#a78bfa 60%,#c4b5fd 100%); border-radius: 18px; padding: 28px 28px 24px; color: #fff; margin-bottom: 18px; position: relative; overflow: hidden; }
-.savings-balance-card::before { content:''; position:absolute; top:-40px; right:-40px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,.08); }
-.savings-balance-card::after { content:''; position:absolute; bottom:-30px; right:60px; width:100px; height:100px; border-radius:50%; background:rgba(255,255,255,.06); }
-.sbc-label { font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; opacity:.8; margin-bottom:8px; }
-.sbc-amount { font-size:42px; font-weight:200; letter-spacing:-.03em; line-height:1; margin-bottom:6px; }
+.savings-balance-card { background: #1c1a19; border: 1px solid rgba(197, 160, 89, 0.2); border-radius: 14px; padding: 28px 28px 24px; color: var(--sidebar-text-active); margin-bottom: 18px; position: relative; overflow: hidden; }
+.savings-balance-card::before { display:none; }
+.savings-balance-card::after { display:none; }
+.sbc-label { font-size:11px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color: var(--gold-accent); opacity:1; margin-bottom:10px; }
+.sbc-amount { font-size:42px; font-weight:300; letter-spacing:-.03em; line-height:1; margin-bottom:8px; }
 .sbc-amount b { font-weight:200; }
 .sbc-sub { font-size:13px; opacity:.75; display:flex; gap:18px; flex-wrap:wrap; }
 .sbc-sub span { display:flex; align-items:center; gap:5px; }
-.sbc-edit-btn { position:absolute; top:20px; right:20px; background:rgba(255,255,255,.2); border:none; border-radius:8px; padding:6px 12px; color:#fff; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; transition:background .15s; z-index:1; }
-.sbc-edit-btn:hover { background:rgba(255,255,255,.32); }
+.sbc-edit-btn { position:absolute; top:20px; right:20px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); border-radius:6px; padding:6px 12px; color:var(--sidebar-text-active); font-family:inherit; font-size:11.5px; font-weight:400; cursor:pointer; transition:background .15s; z-index:1; }
+.sbc-edit-btn:hover { background:rgba(255,255,255,.15); }
 
 /* SAVINGS SVG CHART */
 .sav-chart-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -328,7 +328,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 /* ENVELOPE CARDS */
 .env-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
 .env-card { background:var(--white); border:1.5px solid var(--border); border-radius:16px; padding:18px; transition:all .18s; position:relative; overflow:hidden; }
-.env-card:hover { border-color:var(--accent); box-shadow:0 6px 24px rgba(124,110,247,.13); transform:translateY(-2px); }
+.env-card:hover { border-color:var(--accent); box-shadow:0 6px 24px rgba(44,42,41,.12); transform:translateY(-2px); }
 .env-card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
 .env-icon-wrap { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
 .env-actions { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
@@ -458,7 +458,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
     <div class="user-card">
       <div class="user-avatar">K</div>
       <div style="flex:1"><div class="user-name">Kovach</div><div class="user-role" id="user-status">Firebase · онлайн</div></div>
-      <div onclick="window._logout()" title="Вийти" style="cursor:pointer;color:#4b4c63;padding:4px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#4b4c63'">
+      <div onclick="window._logout()" title="Вийти" style="cursor:pointer;color:#66615c;padding:4px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='#8c4a4a'" onmouseout="this.style.color='#66615c'">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </div>
     </div>
@@ -502,7 +502,7 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
         <div class="card" style="margin-bottom:0">
           <div class="card-header"><div><div class="card-title">Виплати за 12 місяців</div><div class="card-sub">Нараховано щомісяця</div></div></div>
           <div class="chart-12" id="chart-12"></div>
-          <div class="progress-meta" style="margin-top:8px;"><div class="progress-meta-item"><div class="dot" style="background:#a78bfa"></div>Нараховано</div></div>
+          <div class="progress-meta" style="margin-top:8px;"><div class="progress-meta-item"><div class="dot" style="background:var(--accent)"></div>Нараховано</div></div>
         </div>
         <div class="card" style="margin-bottom:0">
           <div class="card-header"><div class="card-title">Останні нарахування</div></div>
@@ -1371,8 +1371,8 @@ const DOCREF = db_fs.collection('kpay').doc('main');
 // ── STATE ──
 let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], inventory:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{}, importRules:[] };
 let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
-let currentPayMonth='', selectedColor='#7c6ef7', saveTimer=null, isOnline=true;
-const COLORS=['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4','#8b5cf6','#14b8a6'];
+let currentPayMonth='', selectedColor='#c5a059', saveTimer=null, isOnline=true;
+const COLORS=['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72','#7a6a5a','#3d3a37'];
 
 // ── SYNC UI ──
 let toastTimer=null;
@@ -1687,7 +1687,7 @@ function renderPayroll() {
     return {emp,entry,gross,tax,esv,net,fn,paidTotal,status};
   });
   const totalNet=empData.reduce((s,d)=>s+d.fn,0);
-  const AV=['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4'];
+  const AV=['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72'];
   // Прогрес-бари
   pbWrap.innerHTML=`<div class="emp-prog-card">
     <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Частка у фонді — ${monthName(month)} ${month.split('-')[0]}</div>
@@ -2245,7 +2245,7 @@ function renderBudgetStats() {
   document.getElementById('budget-chart-total').innerHTML = months12.map(m=>{
     const hasLimit = m.limit>0;
     const over = hasLimit && m.total>m.limit;
-    const barColor = over?'var(--red)':'linear-gradient(180deg,#a78bfa,#7c6ef7)';
+    const barColor = over?'var(--red)':'var(--accent)';
     return `<div class="cbar-wrap">
       <div style="width:100%;display:flex;flex-direction:column;align-items:center;height:100px;justify-content:flex-end;position:relative">
         ${hasLimit?`<div style="position:absolute;bottom:${Math.round((m.limit/mx)*92)}px;left:0;right:0;border-top:1.5px dashed var(--orange);opacity:.6"></div>`:''}
@@ -2761,21 +2761,21 @@ window.renderIncomeSummary = function() {
 
       <!-- Salary -->
       <div style="background:var(--bg);border-radius:12px;padding:14px 16px;border:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#3b82f6;opacity:.85">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#4a637d;opacity:.85">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">ЗП виплачено</span>
         </div>
-        <div style="font-size:24px;font-weight:300;color:#3b82f6;letter-spacing:-.02em">${fmt(salaryTotal)}</div>
+        <div style="font-size:24px;font-weight:300;color:#4a637d;letter-spacing:-.02em">${fmt(salaryTotal)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px">надходження із заробітної плати</div>
       </div>
 
       <!-- Other incomes -->
       <div style="background:var(--bg);border-radius:12px;padding:14px 16px;border:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#22c55e;opacity:.85">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#4a6b53;opacity:.85">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
           <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Інші надходження</span>
         </div>
-        <div style="font-size:24px;font-weight:300;color:#22c55e;letter-spacing:-.02em">${fmt(otherTotal)}</div>
+        <div style="font-size:24px;font-weight:300;color:#4a6b53;letter-spacing:-.02em">${fmt(otherTotal)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px">окрім заробітної плати</div>
       </div>
 
@@ -2800,8 +2800,8 @@ window.renderIncomeSummary = function() {
           <span>${sp}% ЗП · ${op}% інші</span>
         </div>
         <div style="height:7px;border-radius:20px;overflow:hidden;display:flex;background:var(--border)">
-          <div style="width:${sp}%;background:#3b82f6;transition:width .5s"></div>
-          <div style="width:${op}%;background:#22c55e;transition:width .5s"></div>
+          <div style="width:${sp}%;background:#4a637d;transition:width .5s"></div>
+          <div style="width:${op}%;background:#4a6b53;transition:width .5s"></div>
         </div>
       </div>`;
     })() : ''}
@@ -2813,7 +2813,7 @@ window.renderIncomeSummary = function() {
       <div style="display:flex;flex-direction:column;gap:8px">
         ${catBreakdown.map(({cat, sum}) => {
           const pct = otherTotal > 0 ? Math.min(100, Math.round((sum/otherTotal)*100)) : 0;
-          const color = cat.color || '#22c55e';
+          const color = cat.color || '#4a6b53';
           return `<div style="display:grid;grid-template-columns:1fr auto 80px;align-items:center;gap:10px">
             <div style="display:flex;align-items:center;gap:7px;min-width:0">
               <div style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:${color}"></div>
@@ -2831,7 +2831,7 @@ window.renderIncomeSummary = function() {
       </div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:var(--text)">Разом інші</span>
-        <span style="font-size:13px;font-weight:700;color:#22c55e">${fmt(otherTotal)}</span>
+        <span style="font-size:13px;font-weight:700;color:#4a6b53">${fmt(otherTotal)}</span>
       </div>
     </div>` : ''}
   `;
@@ -3091,15 +3091,15 @@ window.renderSavings = function() {
     const v = minVal + (range/yTicks)*i;
     const y = gy(v);
     const lbl = Math.abs(v)>=1000 ? (Math.round(v/1000))+'к' : Math.round(v).toString();
-    grid+=`<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#e8e9ef" stroke-width="1"/>
-           <text x="${PAD.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#8b8fa8">${lbl}</text>`;
+    grid+=`<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#e6e3dc" stroke-width="1"/>
+           <text x="${PAD.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#8a847c">${lbl}</text>`;
   }
 
   // X-labels
   let xLabels='';
   months.forEach((m,i)=>{
     if(months.length<=12||i%2===0)
-      xLabels+=`<text x="${gx(i)}" y="${H-6}" text-anchor="middle" font-size="10" fill="#8b8fa8">${monthShort(m)}</text>`;
+      xLabels+=`<text x="${gx(i)}" y="${H-6}" text-anchor="middle" font-size="10" fill="#8a847c">${monthShort(m)}</text>`;
   });
 
   // Area path
@@ -3115,7 +3115,7 @@ window.renderSavings = function() {
     const barH = Math.abs(d.saved/range*cH);
     const bx = gx(i) - barW/2;
     const by = d.saved>0 ? gy(d.saved+Math.max(0,minVal)) : gy(Math.max(0,minVal));
-    const color = d.saved>=0 ? '#22c55e' : '#ef4444';
+    const color = d.saved>=0 ? '#4a6b53' : '#8c4a4a';
     bars+=`<rect x="${bx}" y="${by}" width="${barW}" height="${Math.max(2,barH)}" fill="${color}" opacity="0.35" rx="2">
       <title>${monthShort(d.month)}: ${d.saved>=0?'+':''}${fmt(d.saved)}</title>
     </rect>`;
@@ -3124,7 +3124,7 @@ window.renderSavings = function() {
   // Circles with tooltip
   let circles='';
   monthData.forEach((d,i)=>{
-    circles+=`<circle cx="${gx(i)}" cy="${gy(d.cumulative)}" r="3.5" fill="#7c6ef7" stroke="white" stroke-width="1.5">
+    circles+=`<circle cx="${gx(i)}" cy="${gy(d.cumulative)}" r="3.5" fill="#2c2a29" stroke="white" stroke-width="1.5">
       <title>${monthName(d.month)} ${d.month.split('-')[0]}: ${fmt(d.cumulative)}</title>
     </circle>`;
   });
@@ -3133,19 +3133,19 @@ window.renderSavings = function() {
     <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="savGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#7c6ef7" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="#7c6ef7" stop-opacity="0.02"/>
+          <stop offset="0%" stop-color="#2c2a29" stop-opacity="0.20"/>
+          <stop offset="100%" stop-color="#2c2a29" stop-opacity="0.02"/>
         </linearGradient>
       </defs>
       ${grid}${xLabels}${bars}
       <path d="${areaD}" fill="url(#savGrad)"/>
-      <polyline points="${pts}" fill="none" stroke="#7c6ef7" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <polyline points="${pts}" fill="none" stroke="#2c2a29" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
       ${circles}
     </svg>
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;padding:0 4px">
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:12px;height:3px;background:#7c6ef7;border-radius:2px"></div>Накопичено</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#22c55e;opacity:.7"></div>Заощаджено за місяць (+)</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#ef4444;opacity:.7"></div>Дефіцит за місяць (−)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:12px;height:3px;background:#2c2a29;border-radius:2px"></div>Накопичено</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#4a6b53;opacity:.7"></div>Заощаджено за місяць (+)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#8c4a4a;opacity:.7"></div>Дефіцит за місяць (−)</div>
     </div>`;
 
   // Income visualization
@@ -3317,8 +3317,8 @@ function renderSavIncomeViz(monthData) {
       const v = (maxVal/4)*i;
       const y = gy(v);
       const lbl = v>=1000 ? Math.round(v/1000)+'к' : Math.round(v);
-      yGrid += `<line x1="${PAD.left}" y1="${y}" x2="${totalW-PAD.right}" y2="${y}" stroke="#e8e9ef" stroke-width="1"/>
-                <text x="${PAD.left-6}" y="${y+4}" text-anchor="end" font-size="10" fill="#8b8fa8">${lbl}</text>`;
+      yGrid += `<line x1="${PAD.left}" y1="${y}" x2="${totalW-PAD.right}" y2="${y}" stroke="#e6e3dc" stroke-width="1"/>
+                <text x="${PAD.left-6}" y="${y+4}" text-anchor="end" font-size="10" fill="#8a847c">${lbl}</text>`;
     }
 
     let bars = '';
@@ -3337,17 +3337,17 @@ function renderSavIncomeViz(monthData) {
       const xExp = baseX + W_BAR + GAP/2;
       // income bar (two-tone: paid=blue, income=green)
       if (r.income > 0) {
-        bars += `<rect x="${xInc}" y="${iy}" width="${W_BAR}" height="${Math.max(2,barH(r.income))}" fill="#22c55e" rx="3 3 0 0"><title>Надходження: ${fmt(r.income)}</title></rect>`;
+        bars += `<rect x="${xInc}" y="${iy}" width="${W_BAR}" height="${Math.max(2,barH(r.income))}" fill="#4a6b53" rx="3 3 0 0"><title>Надходження: ${fmt(r.income)}</title></rect>`;
       }
-      bars += `<rect x="${xInc}" y="${py}" width="${W_BAR}" height="${Math.max(2,ph)}" fill="#3b82f6" rx="${r.income>0?'0':'3 3'} 0 0"><title>ЗП: ${fmt(r.paid)}</title></rect>`;
+      bars += `<rect x="${xInc}" y="${py}" width="${W_BAR}" height="${Math.max(2,ph)}" fill="#4a637d" rx="${r.income>0?'0':'3 3'} 0 0"><title>ЗП: ${fmt(r.paid)}</title></rect>`;
       // expense bar
-      bars += `<rect x="${xExp}" y="${ey}" width="${W_BAR}" height="${Math.max(2,eh)}" fill="#ef4444" rx="3 3 0 0" opacity="0.85"><title>Витрати: ${fmt(r.expenses)}</title></rect>`;
+      bars += `<rect x="${xExp}" y="${ey}" width="${W_BAR}" height="${Math.max(2,eh)}" fill="#8c4a4a" rx="3 3 0 0" opacity="0.85"><title>Витрати: ${fmt(r.expenses)}</title></rect>`;
       // net dot
       const net = r.saved;
       const dotY = gy(Math.max(0, net));
       // x label
       const lx = baseX + W_BAR;
-      bars += `<text x="${lx}" y="${H-PAD.bottom+14}" text-anchor="middle" font-size="9.5" fill="#8b8fa8">${monthShort(r.month)}</text>`;
+      bars += `<text x="${lx}" y="${H-PAD.bottom+14}" text-anchor="middle" font-size="9.5" fill="#8a847c">${monthShort(r.month)}</text>`;
     });
 
     document.getElementById('sav-income-viz').innerHTML = `
@@ -3360,18 +3360,18 @@ function renderSavIncomeViz(monthData) {
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <svg width="${totalW}" height="${H}" xmlns="http://www.w3.org/2000/svg">
           ${yGrid}${bars}
-          <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${H-PAD.bottom}" stroke="#e8e9ef" stroke-width="1"/>
+          <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${H-PAD.bottom}" stroke="#e6e3dc" stroke-width="1"/>
         </svg>
       </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 2px">
         <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
-          <div style="width:10px;height:10px;border-radius:2px;background:#3b82f6"></div>ЗП
+          <div style="width:10px;height:10px;border-radius:2px;background:#4a637d"></div>ЗП
         </div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
-          <div style="width:10px;height:10px;border-radius:2px;background:#22c55e"></div>Надходження
+          <div style="width:10px;height:10px;border-radius:2px;background:#4a6b53"></div>Надходження
         </div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
-          <div style="width:10px;height:10px;border-radius:2px;background:#ef4444;opacity:.85"></div>Витрати
+          <div style="width:10px;height:10px;border-radius:2px;background:#8c4a4a;opacity:.85"></div>Витрати
         </div>
       </div>`;
   }
@@ -3403,16 +3403,16 @@ function vizFlowBar(paid, income, expenses) {
         <span style="color:${net>=0?'var(--accent)':'var(--red)'}">Результат: ${net>=0?'+':''}${fmt(net)}</span>
       </div>
       <div style="height:8px;border-radius:20px;overflow:hidden;display:flex;background:var(--border)">
-        <div style="width:${paidPct}%;background:#3b82f6;transition:width .5s"></div>
-        <div style="width:${incPct}%;background:#22c55e;transition:width .5s"></div>
+        <div style="width:${paidPct}%;background:#4a637d;transition:width .5s"></div>
+        <div style="width:${incPct}%;background:#4a6b53;transition:width .5s"></div>
       </div>
       <div style="height:5px;border-radius:20px;overflow:hidden;margin-top:3px;background:var(--border)">
-        <div style="width:${expPct}%;background:#ef4444;opacity:.85;transition:width .5s"></div>
+        <div style="width:${expPct}%;background:#8c4a4a;opacity:.85;transition:width .5s"></div>
       </div>
       <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#3b82f6"></div>ЗП ${paidPct}%</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#22c55e"></div>Надх. ${incPct}%</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#ef4444;opacity:.85"></div>Витр. ${expPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#4a637d"></div>ЗП ${paidPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#4a6b53"></div>Надх. ${incPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#8c4a4a;opacity:.85"></div>Витр. ${expPct}%</div>
       </div>
     </div>`;
 }
@@ -3431,7 +3431,7 @@ function renderEnvelopes(totalSaved) {
     const saved = (env.transactions||[]).reduce((s,t)=>s+t.amount,0);
     const goal = env.goal || 0;
     const pct = goal>0 ? Math.min(100, Math.round((saved/goal)*100)) : 0;
-    const color = env.color || '#7c6ef7';
+    const color = env.color || '#c5a059';
     const deadlineStr = env.deadline ? ` · до ${new Date(env.deadline+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short',year:'numeric'})}` : '';
     return `<div class="env-card">
       <div class="env-card-top">
@@ -3485,7 +3485,7 @@ window.openEnvModal = function(id) {
   document.getElementById('env-deadline').value = env?.deadline || '';
   document.getElementById('env-deadline-display').value = env?.deadline
     ? new Date(env.deadline+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'}) : '';
-  selectedColor = env?.color || '#7c6ef7';
+  selectedColor = env?.color || '#c5a059';
   const cp = document.getElementById('env-color-picker');
   cp.innerHTML = COLORS.map(c=>`<div class="color-chip${c===selectedColor?' sel':''}" style="background:${c}" onclick="selectedColor='${c}';document.querySelectorAll('#env-color-picker .color-chip').forEach(x=>x.classList.remove('sel'));this.classList.add('sel')"></div>`).join('');
   previewEnvIcon();
@@ -3501,7 +3501,7 @@ window.saveEnvelope = function() {
     name,
     goal: parseFloat(document.getElementById('env-goal').value) || 0,
     icon: document.getElementById('env-icon').value.trim() || '',
-    color: selectedColor || '#7c6ef7',
+    color: selectedColor || '#c5a059',
     deadline: document.getElementById('env-deadline').value || '',
     note: document.getElementById('env-note').value.trim(),
   };
@@ -3722,7 +3722,7 @@ window.renderInventory = function() {
 };
 
 // ── ANALYTICS PAGE ──
-const AN_COLORS = ['#7c6ef7','#f472b6','#22c55e','#3b82f6','#f97316','#eab308','#ef4444','#06b6d4'];
+const AN_COLORS = ['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72'];
 let anActiveEmps = new Set();
 let anActiveMetrics = new Set(['gross']);
 
@@ -3750,7 +3750,7 @@ window.toggleAnMetric = function(metric, btn) {
   renderAnalytics();
 };
 
-const METRIC_COLORS = { gross:'#7c6ef7', net:'#22c55e', paid:'#3b82f6', tax:'#ef4444' };
+const METRIC_COLORS = { gross:'#c5a059', net:'#4a6b53', paid:'#4a637d', tax:'#8c4a4a' };
 const METRIC_LABELS = { gross:'Нараховано', net:'До виплати', paid:'Виплачено', tax:'Податок' };
 
 function renderAnalytics() {
@@ -3826,15 +3826,15 @@ function renderAnalytics() {
     const y = PAD.top + (chartH/yTicks)*i;
     const val = maxVal*(1 - i/yTicks);
     const label = val>=1000 ? Math.round(val/1000)+'к' : Math.round(val).toString();
-    svgGrid += `<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#e8e9ef" stroke-width="1"/>`;
-    svgGrid += `<text x="${PAD.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#8b8fa8">${label}</text>`;
+    svgGrid += `<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#e6e3dc" stroke-width="1"/>`;
+    svgGrid += `<text x="${PAD.left-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#8a847c">${label}</text>`;
   }
 
   // X-мітки
   let svgX = '';
   months.forEach((m,i)=>{
     if(months.length<=12 || i%2===0) {
-      svgX += `<text x="${getX(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="#8b8fa8">${monthShort(m)}</text>`;
+      svgX += `<text x="${getX(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="#8a847c">${monthShort(m)}</text>`;
     }
   });
 
@@ -3932,7 +3932,7 @@ window.toggleAnEmp = function(id, el, color) {
 function populateIncomeCats() { document.getElementById('ic-cat').innerHTML=db.incomeCats.map(c=>`<option value="${c.id}">${renderIcon(c.icon,'14px')} ${c.name}</option>`).join(''); }
 
 let editIcatId = null;
-let icatSelectedColor = '#7c6ef7';
+let icatSelectedColor = '#c5a059';
 
 window.previewIcatIcon = function() {
   const val = document.getElementById('icat-icon').value.trim();
@@ -3982,9 +3982,9 @@ function drawDonut(cId, lId, data, opts) {
   const total = f.reduce((s, d) => s + d.value, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!f.length) {
-    ctx.fillStyle = '#e8e9ef'; ctx.beginPath(); ctx.arc(90,90,60,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e6e3dc'; ctx.beginPath(); ctx.arc(90,90,60,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(90,90,36,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#b0b3c8'; ctx.font = '11px Plus Jakarta Sans'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#a39a8e'; ctx.font = '11px Plus Jakarta Sans'; ctx.textAlign = 'center';
     ctx.fillText('Немає даних', 90, 94);
   } else {
     let a = -Math.PI/2;
@@ -3994,9 +3994,9 @@ function drawDonut(cId, lId, data, opts) {
       ctx.fillStyle = d.color; ctx.fill(); a += sl;
     });
     ctx.beginPath(); ctx.arc(90,90,40,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
-    ctx.fillStyle='#1a1b2e'; ctx.font='bold 13px Plus Jakarta Sans'; ctx.textAlign='center';
+    ctx.fillStyle='#211f1e'; ctx.font='bold 13px Plus Jakarta Sans'; ctx.textAlign='center';
     ctx.fillText(fmt(total).split(' ')[0], 90, 88);
-    ctx.fillStyle='#8b8fa8'; ctx.font='10px Plus Jakarta Sans';
+    ctx.fillStyle='#8a847c'; ctx.font='10px Plus Jakarta Sans';
     ctx.fillText(db.settings.currency||'грн', 90, 102);
   }
 
@@ -4215,7 +4215,7 @@ function seedDemoData() {
   const ids=[uid(),uid(),uid()];
   db.employees=[{id:ids[0],name:'Іванова Олена Петрівна',position:'Менеджер',dept:'Продажі',type:'salary',rate:25000,hire:'2022-03-01',status:'active',note:''},{id:ids[1],name:'Коваленко Дмитро Іванович',position:'Програміст',dept:'IT',type:'hourly',rate:250,hire:'2023-01-15',status:'active',note:''},{id:ids[2],name:'Мельник Тетяна Олегівна',position:'Бухгалтер',dept:'Фінанси',type:'salary',rate:20000,hire:'2021-09-01',status:'vacation',note:''}];
   for(let i=0;i<=11;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.employees.forEach(emp=>{ const base=calcGross(emp,db.settings.hours); const{gross,tax,esv,net}=calcTaxes(base); db.payroll.push({id:uid(),empId:emp.id,month:key,gross,tax,esv,net,hours:db.settings.hours,bonus:0,advance:0,deductions:0,status:i>0?'paid':(emp.id===ids[0]?'paid':'pending'),note:''}); }); }
-  const bc=['#7c6ef7','#3b82f6','#f97316','#22c55e','#f472b6','#eab308'];
+  const bc=['#c5a059','#4a637d','#a66e38','#4a6b53','#6b4a5a','#9e8238'];
   [['Авто','',8000],['Будинок','',12000],['Відпочинок','',5000],['Подарунки','',3000],['Внески','',2000],['Їжа','',6000]].forEach(([name,icon,limit],idx)=>{ const id=uid(); db.budgetCats.push({id,name,icon,limit,color:bc[idx]}); db.expenses.push({id:uid(),catId:id,amount:Math.round(limit*.45+Math.random()*limit*.25),date:thisMonth()+'-10',desc:'Приклад'}); });
   [['Фріланс',''],['Оренда',''],['Дивіденди',''],['Продаж','']].forEach(([name,icon])=>{ const id=uid(); db.incomeCats.push({id,name,icon}); for(let i=0;i<6;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.incomes.push({id:uid(),catId:id,amount:Math.round(2000+Math.random()*8000),date:key+'-15',desc:'Надходження'}); } });
 }
@@ -4226,26 +4226,26 @@ function showAuthScreen(errorMsg) {
   ls.style.animation = 'none';
   ls.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;width:100%;max-width:340px;padding:0 20px;">
-      <div style="width:68px;height:68px;border-radius:20px;background:linear-gradient(135deg,#7c6ef7,#a78bfa);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:22px;letter-spacing:-.02em;margin-bottom:14px">K·P</div>
-      <div style="color:#fff;font-size:24px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px">K-Pay</div>
-      <div style="color:#9192a6;font-size:13px;margin-bottom:28px">Введіть дані для входу</div>
+      <div style="width:68px;height:68px;border-radius:50%;background:var(--sidebar-bg);border:1px solid var(--gold-accent);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:400;color:var(--gold-accent);font-size:20px;letter-spacing:.05em;margin-bottom:16px">K·P</div>
+      <div style="color:#f4f1ea;font-family:'Cinzel',serif;font-size:22px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">K-Pay</div>
+      <div style="color:#8c857f;font-size:12.5px;font-weight:300;margin-bottom:28px">Введіть дані для входу</div>
       <input id="auth-email" type="email" placeholder="Email"
-        style="width:100%;background:#1e1f2b;border:1.5px solid #3a3b4e;border-radius:12px;padding:13px 18px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;outline:none;margin-bottom:10px"
+        style="width:100%;background:#242220;border:1.5px solid #3a362f;border-radius:8px;padding:13px 18px;color:#f4f1ea;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;outline:none;margin-bottom:10px"
         onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()">
       <input id="auth-pass" type="password" placeholder="Пароль"
-        style="width:100%;background:#1e1f2b;border:1.5px solid #3a3b4e;border-radius:12px;padding:13px 18px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;outline:none;margin-bottom:10px;letter-spacing:.1em"
+        style="width:100%;background:#242220;border:1.5px solid #3a362f;border-radius:8px;padding:13px 18px;color:#f4f1ea;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;outline:none;margin-bottom:10px;letter-spacing:.1em"
         onkeydown="if(event.key==='Enter')window._doLogin()">
       <button id="auth-btn" onclick="window._doLogin()"
-        style="width:100%;background:#7c6ef7;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer">
+        style="width:100%;background:var(--gold-accent);color:#181716;border:none;border-radius:8px;padding:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14.5px;font-weight:600;letter-spacing:.02em;cursor:pointer">
         Увійти →
       </button>
       <button id="reset-btn" onclick="window._doReset()"
-        style="width:100%;background:transparent;color:#9192a6;border:none;padding:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:2px;border-radius:8px;transition:color .15s"
-        onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#9192a6'">
+        style="width:100%;background:transparent;color:#8c857f;border:none;padding:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:2px;border-radius:8px;transition:color .15s"
+        onmouseover="this.style.color='#f4f1ea'" onmouseout="this.style.color='#8c857f'">
         Забули пароль?
       </button>
-      <div id="auth-err" style="color:#ef4444;font-size:13px;margin-top:4px;min-height:18px;text-align:center">${errorMsg||''}</div>
-      <div id="auth-ok" style="color:#22c55e;font-size:13px;margin-top:4px;min-height:18px;text-align:center"></div>
+      <div id="auth-err" style="color:#c17f7f;font-size:13px;margin-top:4px;min-height:18px;text-align:center">${errorMsg||''}</div>
+      <div id="auth-ok" style="color:#7fa088;font-size:13px;margin-top:4px;min-height:18px;text-align:center"></div>
     </div>`;
 
   window._doReset = async function() {
@@ -4297,9 +4297,9 @@ function showAuthScreen(errorMsg) {
       };
       err.textContent = msgs[e.code] || 'Помилка входу';
       const inp = document.getElementById('auth-pass');
-      inp.style.borderColor = '#ef4444';
+      inp.style.borderColor = '#8c4a4a';
       inp.style.animation = 'shake .3s ease';
-      setTimeout(() => { inp.style.borderColor = '#3a3b4e'; inp.style.animation = ''; }, 600);
+      setTimeout(() => { inp.style.borderColor = '#3a362f'; inp.style.animation = ''; }, 600);
     }
   };
 }
