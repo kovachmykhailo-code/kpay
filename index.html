@@ -25,8 +25,8 @@
   --yellow: #9e8238; --yellow-light: #f7f5ed;
   --card-r: 12px; --shadow: 0 4px 20px rgba(0,0,0,.02), 0 1px 3px rgba(0,0,0,.03);
 }
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html { height: -webkit-fill-available; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; accent-color: var(--gold-accent); }
+html { height: -webkit-fill-available; color-scheme: light; }
 body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; font-size: 14px; letter-spacing: -0.01em; }
 
 /* LOADING */
@@ -241,6 +241,9 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 .form-row label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
 .form-row input, .form-row select, .form-row textarea { background: var(--bg); border: 1.5px solid var(--border); border-radius: 9px; padding: 10px 13px; font-family: inherit; font-size: 14px; color: var(--text); outline: none; transition: border-color .15s; min-height: 44px; -webkit-appearance: none; appearance: none; }
 .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); background: #fff; }
+
+input[type="month"]::-webkit-calendar-picker-indicator, input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .55; transition: opacity .15s ease; border-radius: 4px; }
+input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; background: var(--border-subtle); }
 
 /* PAYSLIP */
 .slip-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
@@ -1374,6 +1377,24 @@ let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#c5a059', saveTimer=null, isOnline=true;
 const COLORS=['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72','#7a6a5a','#3d3a37'];
 
+// Мапа старих кольорів (попередня яскрава палітра) на нові — для вже збережених категорій/конвертів
+const LEGACY_COLOR_MAP = {
+  '#7c6ef7':'#c5a059', '#f472b6':'#8c4a4a', '#22c55e':'#4a6b53', '#3b82f6':'#4a637d',
+  '#f97316':'#a66e38', '#eab308':'#9e8238', '#ef4444':'#6b4a5a', '#06b6d4':'#5c7a72',
+  '#8b5cf6':'#7a6a5a', '#14b8a6':'#3d3a37', '#a78bfa':'#c5a059', '#34d399':'#4a6b53'
+};
+function migrateLegacyColors() {
+  let changed = false;
+  const fix = (arr) => { (arr||[]).forEach(item => {
+    if (item && item.color) {
+      const mapped = LEGACY_COLOR_MAP[item.color.toLowerCase()];
+      if (mapped) { item.color = mapped; changed = true; }
+    }
+  }); };
+  fix(db.budgetCats); fix(db.incomeCats); fix(db.envelopes);
+  return changed;
+}
+
 // ── SYNC UI ──
 let toastTimer=null;
 function showToast(state, msg) {
@@ -1402,6 +1423,7 @@ async function loadFromFirebase() {
       if (!db.inventory) db.inventory = [];
       if (!db.importRules) db.importRules = [];
       if (db.savingsBase === undefined) db.savingsBase = 0;
+      if (migrateLegacyColors()) saveToFirebase();
     } else {
       seedDemoData();
       await saveToFirebase();
@@ -1411,6 +1433,7 @@ async function loadFromFirebase() {
     console.warn('Firebase load:', e);
     const local = localStorage.getItem('kpay_v3');
     if (local) try { db = JSON.parse(local); } catch(_) {}
+    if (migrateLegacyColors()) { try { localStorage.setItem('kpay_v3', JSON.stringify(db)); } catch(_) {} }
     setOnline(false);
   }
   hideLoading();
@@ -2356,7 +2379,7 @@ function renderExpenses() {
   tb.innerHTML=list.length ? list.map(e=>{
     const cat=db.budgetCats.find(c=>c.id===e.catId);
     return `<tr>
-      <td><span class="badge" style="background:${cat?.color||'#eee'}22;color:${cat?.color||'#888'};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'—'}</span></td>
+      <td><span class="badge" style="background:${cat?.color||'#e6e3dc'}22;color:${cat?.color||'#8a847c'};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'—'}</span></td>
       <td style="color:var(--text-muted)">${e.desc||'—'}</td>
       <td>${e.date?new Date(e.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td>
       <td style="font-weight:700;color:var(--red)">−${fmt(e.amount)}</td>
