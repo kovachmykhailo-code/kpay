@@ -305,6 +305,20 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
 .cal-day-btn.has-dot::after { content:''; display:block; width:4px; height:4px; border-radius:50%; background:var(--accent); margin:-6px auto 0; }
 .cal-day-btn.selected.has-dot::after { background:#fff; }
 
+/* CUSTOM MONTH PICKER */
+.mp-trigger { display:inline-flex; align-items:center; gap:7px; cursor:pointer; user-select:none; white-space:nowrap; transition:border-color .15s; }
+.mp-trigger:hover { border-color: var(--text-muted); }
+.mp-display-text { flex:1; overflow:hidden; text-overflow:ellipsis; }
+.mp-cal-icon { flex-shrink:0; opacity:.5; }
+.mp-popover { display:none; position:fixed; z-index:600; background:var(--white); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 34px rgba(0,0,0,.14); padding:14px; width:216px; }
+.mp-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.mp-year { font-family:'Cinzel', serif; font-size:14px; font-weight:400; letter-spacing:.03em; }
+.mp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.mp-month-btn { border:none; background:var(--bg); border-radius:8px; padding:9px 0; font-family:inherit; font-size:12.5px; color:var(--text); cursor:pointer; transition:all .12s; }
+.mp-month-btn:hover { background:var(--border-subtle); }
+.mp-month-btn.now { color:var(--accent); font-weight:600; }
+.mp-month-btn.sel { background:var(--text); color:#fff; font-weight:600; }
+
 /* PAYMENT EDIT INLINE */
 .pay-edit-panel { background:var(--accent-light); border:1.5px solid var(--accent); border-radius:12px; padding:14px 16px; margin-bottom:8px; }
 .pay-edit-panel .form-grid { grid-template-columns:1fr 1fr; }
@@ -1143,6 +1157,16 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
   </div>
 </div>
 
+<!-- CUSTOM MONTH PICKER (replaces native <input type=month> popup) -->
+<div class="mp-popover" id="mp-popover" onclick="event.stopPropagation()">
+  <div class="mp-header">
+    <button class="cal-nav" type="button" onclick="mpNavYear(-1)" style="width:28px;height:28px;font-size:15px">←</button>
+    <div class="mp-year" id="mp-year"></div>
+    <button class="cal-nav" type="button" onclick="mpNavYear(1)" style="width:28px;height:28px;font-size:15px">→</button>
+  </div>
+  <div class="mp-grid" id="mp-grid"></div>
+</div>
+
 <!-- PAYMENT EDIT MODAL -->
 <div class="overlay" id="pay-edit-modal"><div class="modal">
   <div class="modal-drag-bar" id="pay-edit-modal-bar">
@@ -1444,6 +1468,8 @@ async function loadFromFirebase() {
   document.getElementById('exp-date').value = todayIso;
   document.getElementById('exp-date-display').value = new Date().toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'});
   setTimeout(initModalDrag, 200);
+  ['pay-month','budget-month','ipt-pick-month','ipt-range-from','ipt-range-to','sip-pick-month','sip-range-from','sip-range-to']
+    .forEach(id => attachMonthPicker(document.getElementById(id)));
 }
 
 async function saveToFirebase() {
@@ -1645,6 +1671,7 @@ function renderRateHistory() {
       </div>
       ${sorted.length>1?`<button class="btn btn-danger btn-sm" onclick="deleteRateEntry(${r._origIdx})">✕</button>`:''}
     </div>`).join('');
+  list.querySelectorAll('input[type="month"]:not([disabled])').forEach(attachMonthPicker);
 }
 
 window.addRateEntry = function() {
@@ -2006,6 +2033,93 @@ window.selectCalDay=function(iso){
   if(calOnSelect) calOnSelect(iso);
   closeCal();
 };
+
+// ── CUSTOM MONTH PICKER (замінює нативний input[type=month] попап) ──
+let mpTargetInput = null, mpViewYear = null;
+
+function fmtMonthDisplay(val) {
+  if (!val) return '<span style="color:var(--text-muted)">Оберіть місяць</span>';
+  const [y, m] = val.split('-').map(Number);
+  return `${CAL_MONTHS[m-1]} ${y}`;
+}
+
+// Візуально замінює нативний input[type=month] на стилізований тригер + попап, зберігаючи
+// оригінальний id/onchange/value — жодна інша логіка застосунку не потребує змін.
+function attachMonthPicker(input) {
+  if (!input || input.dataset.mpAttached) return;
+  input.dataset.mpAttached = '1';
+  const originalStyle = input.getAttribute('style') || '';
+
+  const wrap = document.createElement('span');
+  wrap.className = 'mp-trigger';
+  wrap.setAttribute('style', originalStyle);
+
+  input.parentNode.insertBefore(wrap, input);
+  const disp = document.createElement('span');
+  disp.className = 'mp-display-text';
+  wrap.appendChild(disp);
+  wrap.insertAdjacentHTML('beforeend', '<svg class="mp-cal-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>');
+  wrap.appendChild(input);
+
+  const startsHidden = /display\s*:\s*none/.test(originalStyle);
+  input.tabIndex = -1;
+  input.style.cssText = 'position:absolute;opacity:0;width:0;height:0;padding:0;margin:0;border:0;pointer-events:none;';
+  if (startsHidden) input.style.display = 'none';
+
+  const sync = () => {
+    disp.innerHTML = fmtMonthDisplay(input.value);
+    wrap.style.display = input.style.display === 'none' ? 'none' : 'inline-flex';
+  };
+  sync();
+  input.addEventListener('change', sync);
+  new MutationObserver(sync).observe(input, { attributes: true, attributeFilter: ['style', 'value'] });
+
+  wrap.addEventListener('click', (e) => { e.preventDefault(); if (input.disabled) return; openMonthPicker(input, wrap); });
+}
+
+function openMonthPicker(input, anchorEl) {
+  mpTargetInput = input;
+  mpViewYear = input.value ? parseInt(input.value.split('-')[0]) : new Date().getFullYear();
+  renderMonthPickerGrid();
+  const pop = document.getElementById('mp-popover');
+  pop.style.display = 'block';
+  const rect = anchorEl.getBoundingClientRect();
+  const popWidth = 216;
+  let left = rect.left, top = rect.bottom + 6;
+  if (left + popWidth > window.innerWidth - 10) left = Math.max(10, window.innerWidth - popWidth - 10);
+  if (top + 260 > window.innerHeight) top = Math.max(10, rect.top - 266);
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+}
+
+window.mpNavYear = function(dir) { mpViewYear += dir; renderMonthPickerGrid(); };
+
+function renderMonthPickerGrid() {
+  document.getElementById('mp-year').textContent = mpViewYear;
+  const now = new Date();
+  const selVal = mpTargetInput.value;
+  document.getElementById('mp-grid').innerHTML = CAL_MONTHS.map((name, i) => {
+    const mm = String(i + 1).padStart(2, '0');
+    const val = `${mpViewYear}-${mm}`;
+    const isSel = val === selVal;
+    const isNow = mpViewYear === now.getFullYear() && (i + 1) === (now.getMonth() + 1);
+    return `<button type="button" class="mp-month-btn${isSel ? ' sel' : ''}${isNow && !isSel ? ' now' : ''}" onclick="pickMonth('${val}')">${name.slice(0, 3)}</button>`;
+  }).join('');
+}
+
+window.pickMonth = function(val) {
+  const input = mpTargetInput;
+  input.value = val;
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  closeMonthPicker();
+};
+
+function closeMonthPicker() { document.getElementById('mp-popover').style.display = 'none'; mpTargetInput = null; }
+
+document.addEventListener('click', (e) => {
+  const pop = document.getElementById('mp-popover');
+  if (pop && pop.style.display === 'block' && !pop.contains(e.target) && !e.target.closest('.mp-trigger')) closeMonthPicker();
+});
 
 // ── EDIT PAYMENT MODAL ──
 let editingPaymentId=null;
