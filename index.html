@@ -2657,14 +2657,24 @@ function setupImportColumns() {
   impHeaderRowIdx = headerIdx;
   const headerRow = impRawAOA[headerIdx].map((c, i) => String(c || '').trim() || `Колонка ${i+1}`);
 
-  const guess = (keys) => headerRow.findIndex(h => keys.some(k => h.toLowerCase().includes(k)));
-  const dateIdx = guess(['дата','date']);
-  const descIdx = guess(['опис','деталі','призначення','комент','merchant','опера','description']);
+  // guess(keys, excludeIdx): перебирає КЛЮЧОВІ СЛОВА за пріоритетом (а не колонки по порядку),
+  // і повертає першу колонку, що підходить під найпріоритетніше слово. Це важливо, бо
+  // заголовок дати на кшталт "Дата i час операції" сам містить підрядок "опера" —
+  // без пріоритету ключових слів колонка дати помилково приймалась за колонку опису.
+  const guess = (keys, excludeIdx) => {
+    for (const k of keys) {
+      const idx = headerRow.findIndex((h, i) => i !== excludeIdx && h.toLowerCase().includes(k));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+  const dateIdx = guess(['дата', 'date']);
+  const descIdx = guess(['опис', 'деталі', 'призначення', 'комент', 'merchant', 'description', 'опера'], dateIdx);
   let amountIdx = headerRow.findIndex(h => {
     const hl = h.toLowerCase();
     return hl.includes('сум') && !hl.includes('залиш') && !hl.includes('баланс') && !hl.includes('комі') && !hl.includes('кешб');
   });
-  if (amountIdx === -1) amountIdx = guess(['сум','amount','val']);
+  if (amountIdx === -1) amountIdx = guess(['сум', 'amount', 'val'], dateIdx);
 
   const opts = headerRow.map((h, i) => `<option value="${i}">${h}</option>`).join('');
   ['imp-col-date','imp-col-amount','imp-col-desc'].forEach(id => document.getElementById(id).innerHTML = opts);
