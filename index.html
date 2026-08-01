@@ -2493,8 +2493,8 @@ function renderExpenses() {
   tb.innerHTML=list.length ? list.map(e=>{
     const cat=db.budgetCats.find(c=>c.id===e.catId);
     return `<tr>
-      <td><span class="badge" style="background:${cat?.color||'#e6e3dc'}22;color:${cat?.color||'#8a847c'};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'—'}</span></td>
-      <td style="color:var(--text-muted)">${e.desc||'—'}</td>
+      <td><span class="badge" style="background:${cat?.color||'#e6e3dc'}22;color:${cat?.color||'#8a847c'};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'Без категорії'}</span></td>
+      <td style="color:var(--text-muted)" title="${(e.desc||'').replace(/"/g,'&quot;')}">${e.desc||'—'}</td>
       <td>${e.date?new Date(e.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td>
       <td style="font-weight:700;color:var(--red)">−${fmt(e.amount)}</td>
       <td><button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">✕</button></td>
@@ -2734,17 +2734,20 @@ window.applyBulkImportCat = function() {
 };
 
 window.finalizeImport = function() {
-  const toImport = impRows.filter(r => r.include && r.catId && r.date);
+  const toImport = impRows.filter(r => r.include && r.date);
   const skipped = impRows.filter(r => r.include).length - toImport.length;
-  if (!toImport.length) { alert('Немає жодної витрати з визначеною категорією для імпорту.'); return; }
+  const withoutCat = toImport.filter(r => !r.catId).length;
+  if (!toImport.length) { alert('Немає жодної витрати для імпорту.'); return; }
   toImport.forEach(r => {
-    db.expenses.push({ id: uid(), catId: r.catId, amount: r.amount, date: r.date, desc: r.desc });
-    learnImportRule(r.desc, r.catId);
+    // Опис завжди зберігаємо з виписки (напр. "Деталі операції") — навіть якщо
+    // категорію не вдалось визначити, за описом можна зорієнтуватись пізніше.
+    db.expenses.push({ id: uid(), catId: r.catId || '', amount: r.amount, date: r.date, desc: r.desc });
+    if (r.catId) learnImportRule(r.desc, r.catId);
   });
   save();
   closeModal('import-modal');
   renderBudget();
-  alert(`Імпортовано ${toImport.length} витрат.` + (skipped ? ` Пропущено ${skipped} — без обраної категорії.` : ''));
+  alert(`Імпортовано ${toImport.length} витрат.` + (withoutCat ? ` З них ${withoutCat} — без визначеної категорії (перевірте опис у списку витрат).` : '') + (skipped ? ` Пропущено ${skipped} — без дати.` : ''));
 };
 
 // ── INCOME ──
