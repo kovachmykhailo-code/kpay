@@ -1345,6 +1345,14 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
       <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-muted);margin:8px 0 4px;cursor:pointer">
         <input type="checkbox" id="imp-only-negative" checked onchange="reparseImportRows()"> Імпортувати лише рядки зі списанням (від'ємна сума)
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-muted);margin:4px 0;cursor:pointer">
+        <input type="checkbox" id="imp-exclude-transfers" onchange="toggleTransferKeywordsWrap();reparseImportRows()"> Виключити перекази між своїми картками
+      </label>
+      <div id="imp-transfer-keywords-wrap" style="display:none;margin:4px 0 8px 26px">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px">Ознаки такого переказу в описі (через кому) — доповніть власним ім'ям/прізвищем, якщо перекидаєте гроші між своїми картками під своїм іменем</label>
+        <input id="imp-transfer-keywords" type="text" onchange="saveTransferKeywords();reparseImportRows()"
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-family:inherit;font-size:12.5px;outline:none;">
+      </div>
     </div>
 
     <div id="imp-step-preview" style="display:none;margin-top:16px">
@@ -2560,6 +2568,9 @@ const IMPORT_DICTIONARY = [
   { re: /київенерго|водоканал|теплокомун|обленерго|нафтогаз/i, hints:['комунал','дім','житло','квартир'] },
 ];
 
+// Типові ознаки переказу між власними картками (можна редагувати/доповнювати в формі імпорту)
+const DEFAULT_TRANSFER_KEYWORDS = "переказ на картку, з білої картки, поповнення картки, otpc2c, переказ між своїми картками, переказ на власну картку";
+
 window.openImportModal = function() {
   impRawAOA = []; impRows = [];
   document.getElementById('imp-step-upload').style.display = '';
@@ -2568,7 +2579,20 @@ window.openImportModal = function() {
   document.getElementById('imp-import-btn').style.display = 'none';
   document.getElementById('imp-file').value = '';
   document.getElementById('imp-file-status').textContent = '';
+  document.getElementById('imp-transfer-keywords').value = db.settings.transferKeywords || DEFAULT_TRANSFER_KEYWORDS;
+  document.getElementById('imp-exclude-transfers').checked = false;
+  document.getElementById('imp-transfer-keywords-wrap').style.display = 'none';
   document.getElementById('import-modal').classList.add('open');
+};
+
+window.toggleTransferKeywordsWrap = function() {
+  document.getElementById('imp-transfer-keywords-wrap').style.display =
+    document.getElementById('imp-exclude-transfers').checked ? '' : 'none';
+};
+
+window.saveTransferKeywords = function() {
+  db.settings.transferKeywords = document.getElementById('imp-transfer-keywords').value;
+  save();
 };
 
 function parseAmountFlexible(raw) {
@@ -2687,8 +2711,11 @@ window.handleImportFile = function(event) {
 
 function setupImportColumns() {
   const headerKeywords = ['дата','сум','опис','деталі','призначення','категорі','карт','operation','date','amount'];
+  // Деякі виписки (напр. ОТП Банк) мають до 8+ рядків метаданих (ПІБ, ІПН, номер
+  // рахунку, підсумки обороту тощо) ПЕРЕД реальним заголовком таблиці — тому
+  // скануємо ширший діапазон рядків, а не лише перші 6.
   let headerIdx = 0, bestScore = -1;
-  for (let i = 0; i < Math.min(impRawAOA.length, 6); i++) {
+  for (let i = 0; i < Math.min(impRawAOA.length, 20); i++) {
     const row = impRawAOA[i].map(c => String(c || '').toLowerCase());
     const score = row.filter(c => headerKeywords.some(k => c.includes(k))).length;
     if (score > bestScore) { bestScore = score; headerIdx = i; }
@@ -2708,7 +2735,7 @@ function setupImportColumns() {
     return -1;
   };
   const dateIdx = guess(['дата', 'date']);
-  const descIdx = guess(['опис', 'деталі', 'призначення', 'комент', 'merchant', 'description', 'опера'], dateIdx);
+  const descIdx = guess(['опис', 'деталі', 'місце проведення', 'призначення', 'комент', 'merchant', 'description', 'опера'], dateIdx);
   let amountIdx = headerRow.findIndex(h => {
     const hl = h.toLowerCase();
     return hl.includes('сум') && !hl.includes('залиш') && !hl.includes('баланс') && !hl.includes('комі') && !hl.includes('кешб');
@@ -2731,6 +2758,9 @@ window.reparseImportRows = function() {
   const amountIdx = parseInt(document.getElementById('imp-col-amount').value);
   const descIdx = parseInt(document.getElementById('imp-col-desc').value);
   const onlyNeg = document.getElementById('imp-only-negative').checked;
+  const excludeTransfers = document.getElementById('imp-exclude-transfers').checked;
+  const transferKeywords = (document.getElementById('imp-transfer-keywords').value || '')
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   const dataRows = impRawAOA.slice(impHeaderRowIdx + 1);
 
   impRows = [];
@@ -2741,8 +2771,11 @@ window.reparseImportRows = function() {
     if (onlyNeg && amount >= 0) return;
     const date = parseDateFlexible(row[dateIdx]);
     const desc = String(row[descIdx] || '').trim();
+    if (excludeTransfers && transferKeywords.some(k => k && desc.toLowerCase().includes(k))) return;
     impRows.push({ date, amount: Math.abs(amount), desc, catId: suggestCategory(desc) || '', include: true });
   });
+
+  markPossibleDuplicates();
 
   document.getElementById('imp-step-preview').style.display = impRows.length ? '' : 'none';
   document.getElementById('imp-import-btn').style.display = impRows.length ? '' : 'none';
@@ -2752,11 +2785,28 @@ window.reparseImportRows = function() {
   renderImportPreview();
 };
 
+// Позначає рядки, які МОЖУТЬ бути дублікатами — або такий запис (дата+сума+опис)
+// вже є серед раніше збережених витрат, або він двічі зустрічається в межах
+// цього самого файлу (наприклад, файл випадково імпортували повторно).
+function markPossibleDuplicates() {
+  const seen = new Set();
+  impRows.forEach(r => {
+    const key = r.date + '|' + r.amount + '|' + r.desc.toLowerCase();
+    const dupInBatch = seen.has(key);
+    seen.add(key);
+    const dupExisting = db.expenses.some(e =>
+      e.date === r.date && Math.abs((e.amount||0) - r.amount) < 0.01 && (e.desc||'').toLowerCase() === r.desc.toLowerCase());
+    r.dup = dupInBatch || dupExisting;
+  });
+}
+
 window.renderImportPreview = function() {
   const onlyUnresolved = document.getElementById('imp-only-unresolved').checked;
   const resolved = impRows.filter(r => r.catId).length;
+  const dupCount = impRows.filter(r => r.dup).length;
   document.getElementById('imp-summary').textContent =
-    `Знайдено ${impRows.length} витрат. Автоматично визначено категорію для ${resolved}, потребують уваги — ${impRows.length - resolved}.`;
+    `Знайдено ${impRows.length} витрат. Автоматично визначено категорію для ${resolved}, потребують уваги — ${impRows.length - resolved}.` +
+    (dupCount ? ` ⚠ Можливих дублікатів — ${dupCount} (позначені жовтим).` : '');
 
   const rowOpts = (selId) => '<option value="">— оберіть —</option>' +
     db.budgetCats.map(c => `<option value="${c.id}" ${c.id === selId ? 'selected' : ''}>${c.icon || ''} ${c.name}</option>`).join('');
@@ -2765,10 +2815,13 @@ window.renderImportPreview = function() {
   tb.innerHTML = impRows.map((r, i) => {
     if (onlyUnresolved && r.catId) return '';
     const unresolved = !r.catId;
-    return `<tr style="${unresolved ? 'background:var(--orange-light)' : ''}">
+    const rowBg = r.dup ? 'var(--yellow-light)' : (unresolved ? 'var(--orange-light)' : '');
+    return `<tr style="${rowBg ? 'background:'+rowBg : ''}">
       <td><input type="checkbox" ${r.include ? 'checked' : ''} onchange="impRows[${i}].include=this.checked"></td>
       <td style="white-space:nowrap">${r.date ? new Date(r.date+'T12:00:00').toLocaleDateString('uk-UA') : '—'}</td>
-      <td style="color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.desc||'').replace(/"/g,'&quot;')}">${r.desc || '—'}</td>
+      <td style="color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.desc||'').replace(/"/g,'&quot;')}">
+        ${r.dup ? '<span title="Можливий дублікат — схожий запис вже є серед витрат або двічі зустрічається у файлі" style="margin-right:4px">⚠</span>' : ''}${r.desc || '—'}
+      </td>
       <td style="font-weight:700;color:var(--red);white-space:nowrap">−${fmt(r.amount)}</td>
       <td><select onchange="impRows[${i}].catId=this.value;renderImportPreview()" style="min-width:150px;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-family:inherit;font-size:12.5px;outline:none;-webkit-appearance:none;">${rowOpts(r.catId)}</select></td>
     </tr>`;
@@ -2786,6 +2839,7 @@ window.finalizeImport = function() {
   const toImport = impRows.filter(r => r.include && r.date);
   const skipped = impRows.filter(r => r.include).length - toImport.length;
   const withoutCat = toImport.filter(r => !r.catId).length;
+  const dupImported = toImport.filter(r => r.dup).length;
   if (!toImport.length) { alert('Немає жодної витрати для імпорту.'); return; }
   toImport.forEach(r => {
     // Опис завжди зберігаємо з виписки (напр. "Деталі операції") — навіть якщо
@@ -2796,7 +2850,10 @@ window.finalizeImport = function() {
   save();
   closeModal('import-modal');
   renderBudget();
-  alert(`Імпортовано ${toImport.length} витрат.` + (withoutCat ? ` З них ${withoutCat} — без визначеної категорії (перевірте опис у списку витрат).` : '') + (skipped ? ` Пропущено ${skipped} — без дати.` : ''));
+  alert(`Імпортовано ${toImport.length} витрат.` +
+    (withoutCat ? ` З них ${withoutCat} — без визначеної категорії (перевірте опис у списку витрат).` : '') +
+    (dupImported ? ` ⚠ ${dupImported} з них були позначені як можливі дублікати — варто перевірити список витрат.` : '') +
+    (skipped ? ` Пропущено ${skipped} — без дати.` : ''));
 };
 
 // ── INCOME ──
