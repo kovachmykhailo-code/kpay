@@ -792,6 +792,7 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
               <th>Сума</th>
               <th>Курс до грн</th>
               <th>Еквівалент, грн</th>
+              <th>Внесено / оновлено</th>
               <th></th>
             </tr></thead>
             <tbody id="cash-notes-tbody"></tbody>
@@ -810,7 +811,12 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
             <label style="font-size:11px">Курс до грн</label>
             <input id="cn-rate" type="number" placeholder="1" min="0" step="0.01">
           </div>
-          <button class="btn btn-primary" onclick="addCashNote()" style="height:40px">+ Додати</button>
+          <div class="form-row" style="margin:0;min-width:150px">
+            <label style="font-size:11px">Дата запису</label>
+            <div style="position:relative"><input id="cn-date-display" type="text" readonly placeholder="Сьогодні" onclick="openCal('cn-date','cn-date-display')" style="cursor:pointer;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:14px;min-height:40px;-webkit-appearance:none;width:100%"><input id="cn-date" type="hidden"></div>
+          </div>
+          <button class="btn btn-primary" id="cn-submit-btn" onclick="addCashNote()" style="height:40px">+ Додати</button>
+          <button class="btn btn-ghost" id="cn-cancel-btn" onclick="cancelCashNoteEdit()" style="height:40px;display:none">Скасувати</button>
           <div style="margin-left:auto;text-align:right">
             <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Разом у грн</div>
             <div id="cash-notes-total" style="font-size:20px;font-weight:300;color:var(--accent)">0 грн</div>
@@ -833,6 +839,10 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
             </tr></thead>
             <tbody id="sav-tbody"></tbody>
           </table>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;padding:0 4px;font-size:11.5px;color:var(--text-muted)">
+          <div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block"></span>Зарплата виплачена повністю</div>
+          <div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:var(--orange);display:inline-block"></span>⏳ Є часткові виплати за місяць</div>
         </div>
       </div>
     </div>
@@ -1169,18 +1179,19 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
   <div class="modal-body">
     <div id="env-alloc-summary" style="background:var(--bg);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div class="form-grid">
-      <div class="form-row full"><label>Сума для перекладання (грн) *</label><input id="env-alloc-amount" type="number" placeholder="0" min="0"></div>
+      <div class="form-row full"><label>Сума (грн) *</label><input id="env-alloc-amount" type="number" placeholder="0" min="0" step="0.01"></div>
       <div class="form-row full"><label>Примітка</label><input id="env-alloc-note" type="text" placeholder="Необов'язково"></div>
     </div>
     <!-- Транзакції конверту -->
     <div style="margin-top:16px;" id="env-alloc-txs-wrap">
-      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Попередні транзакції</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Попередні транзакції <span style="font-weight:400;text-transform:none;letter-spacing:normal">(можна редагувати або видалити)</span></div>
       <div id="env-alloc-txs"></div>
     </div>
   </div>
   <div class="modal-footer">
     <button class="btn btn-ghost" onclick="closeModal('env-alloc-modal')">Закрити</button>
-    <button class="btn btn-primary" onclick="saveEnvAlloc()">Покласти в конверт</button>
+    <button class="btn btn-danger" onclick="saveEnvAlloc(-1)">− Зняти</button>
+    <button class="btn btn-primary" onclick="saveEnvAlloc(1)">+ Поповнити</button>
   </div>
 </div></div>
 
@@ -3311,10 +3322,23 @@ function renderPayModalStats() {
 // ── SAVINGS PAGE ──
 
 // Допоміжна: повертає суму виплат по всіх співробітниках за місяць
+// Важливо: сумуються ВСІ фактичні виплати (payments), незалежно від статусу
+// нарахування (paid/partial/pending) — часткові виплати враховуються повністю.
 function getSavPayrollPaid(month) {
   return db.payroll
     .filter(p => p.month === month)
     .reduce((s, p) => s + ((p.payments||[]).reduce((ss,pay)=>ss+(pay.amount||0),0)), 0);
+}
+
+// Допоміжна: чи є за місяць хоча б одне нарахування, виплачене лише частково
+// (тобто щось вже виплачено, але не повна сума до виплати)
+function getSavPayrollHasPartial(month) {
+  return db.payroll.some(p => {
+    if (p.month !== month) return false;
+    const fn = Math.max(0, (p.net||0) - (p.deductions||0));
+    const paidTotal = (p.payments||[]).reduce((s,pay)=>s+(pay.amount||0),0);
+    return paidTotal > 0 && paidTotal < fn;
+  });
 }
 
 // Допоміжна: сума надходжень за місяць
@@ -3355,8 +3379,9 @@ window.renderSavings = function() {
     const income = getSavIncome(m);
     const expenses = getSavExpenses(m);
     const saved = paid + income - expenses;
+    const hasPartial = getSavPayrollHasPartial(m);
     cumulative += saved;
-    return { month: m, paid, income, expenses, saved, cumulative };
+    return { month: m, paid, income, expenses, saved, cumulative, hasPartial };
   });
 
   const lastData = monthData[monthData.length - 1];
@@ -3512,7 +3537,7 @@ window.renderSavings = function() {
     cumRun += d.saved;
     return `<tr>
       <td style="font-weight:600">${monthName(d.month)} <span style="color:var(--text-muted);font-weight:400">${d.month.split('-')[0]}</span></td>
-      <td style="color:var(--blue)">${d.paid>0?fmt(d.paid):'—'}</td>
+      <td style="color:${d.hasPartial?'var(--orange)':'var(--blue)'}">${d.paid>0?fmt(d.paid)+(d.hasPartial?' <span title="Включає часткові виплати ЗП за цей місяць" style="cursor:help">⏳</span>':''):'—'}</td>
       <td style="color:var(--green)">${d.income>0?fmt(d.income):'—'}</td>
       <td style="color:var(--red)">${d.expenses>0?'−'+fmt(d.expenses):'—'}</td>
       <td style="font-weight:600;color:${d.saved>=0?'var(--green)':'var(--red)'}">${d.saved>=0?'+':''}${fmt(d.saved)}</td>
@@ -3912,23 +3937,57 @@ window.openEnvAllocModal = function(envId) {
   document.getElementById('env-alloc-modal').classList.add('open');
 };
 
+let editingEnvTxId = null;
+
 function renderEnvAllocTxs(env) {
   const txs = [...(env.transactions||[])].sort((a,b)=>b.date.localeCompare(a.date));
   const el = document.getElementById('env-alloc-txs');
   if (!txs.length) { el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px">Транзакцій поки немає</div>`; return; }
-  el.innerHTML = txs.map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+  el.innerHTML = txs.map(t=>{
+    if (editingEnvTxId === t.id) {
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="env-tx-edit-amount" type="number" step="0.01" value="${t.amount}" style="width:110px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:13px">
+          <input id="env-tx-edit-note" type="text" value="${(t.note||'').replace(/"/g,'&quot;')}" placeholder="Примітка" style="flex:1;min-width:100px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:13px">
+          <button class="btn btn-primary btn-sm" onclick="saveEnvTxEdit('${env.id}','${t.id}')">✓</button>
+          <button class="btn btn-ghost btn-sm" onclick="editingEnvTxId=null;renderEnvAllocTxs(db.envelopes.find(e=>e.id==='${env.id}'))">✕</button>
+        </div>
+      </div>`;
+    }
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
     <div>
       <span style="font-weight:600;color:${t.amount>=0?'var(--green)':'var(--red)'}">${t.amount>=0?'+':''}${fmt(t.amount)}</span>
       <span style="font-size:11px;color:var(--text-muted);margin-left:8px">${new Date(t.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short'})}</span>
       ${t.note?`<span style="font-size:11px;color:var(--text-muted)"> · ${t.note}</span>`:''}
     </div>
-    <button class="btn btn-danger btn-sm" onclick="deleteEnvTx('${env.id}','${t.id}')">✕</button>
-  </div>`).join('');
+    <div style="display:flex;gap:5px">
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="editingEnvTxId='${t.id}';renderEnvAllocTxs(db.envelopes.find(e=>e.id==='${env.id}'))"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="btn btn-danger btn-sm" onclick="deleteEnvTx('${env.id}','${t.id}')">✕</button>
+    </div>
+  </div>`;
+  }).join('');
 }
 
-window.saveEnvAlloc = function() {
-  const amount = parseFloat(document.getElementById('env-alloc-amount').value)||0;
+window.saveEnvTxEdit = function(envId, txId) {
+  const env = (db.envelopes||[]).find(e=>e.id===envId);
+  if (!env) return;
+  const tx = (env.transactions||[]).find(t=>t.id===txId);
+  if (!tx) return;
+  const amount = parseFloat(document.getElementById('env-tx-edit-amount').value);
+  if (isNaN(amount)) return showToast('err','Вкажіть коректну суму');
+  tx.amount = amount;
+  tx.note = document.getElementById('env-tx-edit-note').value.trim();
+  editingEnvTxId = null;
+  save(); renderEnvAllocTxs(env); renderSavings();
+  openEnvAllocModal(envId);
+  showToast('ok','✓ Транзакцію оновлено');
+};
+
+window.saveEnvAlloc = function(sign) {
+  sign = sign || 1;
+  let amount = parseFloat(document.getElementById('env-alloc-amount').value)||0;
   if (!amount) return showToast('err','Вкажіть суму');
+  amount = Math.abs(amount) * sign;
   const note = document.getElementById('env-alloc-note').value.trim();
   const env = (db.envelopes||[]).find(e=>e.id===currentAllocEnvId);
   if (!env) return;
@@ -3938,7 +3997,7 @@ window.saveEnvAlloc = function() {
   document.getElementById('env-alloc-amount').value = '';
   document.getElementById('env-alloc-note').value = '';
   renderSavings();
-  showToast('ok', `✓ ${fmt(amount)} додано до «${env.name}»`);
+  showToast('ok', sign>0 ? `✓ ${fmt(amount)} додано до «${env.name}»` : `✓ ${fmt(Math.abs(amount))} знято з «${env.name}»`);
   // Update summary
   openEnvAllocModal(currentAllocEnvId);
   document.getElementById('env-alloc-modal').classList.add('open');
@@ -3968,47 +4027,113 @@ function getCashNotesTotal() {
   return (db.cashNotes||[]).reduce((s,n) => s + (isUahCode(n.currency) ? n.amount : n.amount * (n.rate||0)), 0);
 }
 
+function fmtCashNoteTimestamp(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const dateStr = d.toLocaleDateString('uk-UA',{day:'numeric',month:'short',year:'numeric'});
+  const timeStr = d.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+  return `${dateStr}, ${timeStr}`;
+}
+
 function renderCashNotes() {
   const tbody = document.getElementById('cash-notes-tbody');
   if (!tbody) return;
   const notes = db.cashNotes||[];
   if (!notes.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px">Записів ще немає</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:16px">Записів ще немає</td></tr>`;
   } else {
-    tbody.innerHTML = notes.map(n => {
+    const sorted = [...notes].sort((a,b)=>(b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||''));
+    tbody.innerHTML = sorted.map(n => {
       const uah = isUahCode(n.currency);
       const equiv = uah ? n.amount : n.amount * (n.rate||0);
+      const wasEdited = n.updatedAt && n.createdAt && n.updatedAt !== n.createdAt;
       return `<tr>
         <td style="font-weight:600">${n.currency||'UAH'}</td>
         <td>${fmt(n.amount)}</td>
         <td>${uah?'—':fmt(n.rate||0)}</td>
         <td style="font-weight:600;color:var(--accent)">${fmt(equiv)} грн</td>
-        <td><button class="btn btn-danger btn-sm" onclick="deleteCashNote('${n.id}')">✕</button></td>
+        <td style="font-size:12px">
+          <div>${n.date ? new Date(n.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short',year:'numeric'}) : '—'}</div>
+          <div style="color:var(--text-muted);font-size:11px" title="${wasEdited?'Востаннє змінено':'Внесено'}: ${fmtCashNoteTimestamp(n.updatedAt||n.createdAt)}">${wasEdited?'ред. ':''}${fmtCashNoteTimestamp(n.updatedAt||n.createdAt)}</div>
+        </td>
+        <td><div style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="editCashNote('${n.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCashNote('${n.id}')">✕</button>
+        </div></td>
       </tr>`;
     }).join('');
   }
   document.getElementById('cash-notes-total').textContent = fmt(getCashNotesTotal()) + ' грн';
 }
 
+let editCashNoteId = null;
+
 window.addCashNote = function() {
   const currencyRaw = document.getElementById('cn-currency').value.trim().toUpperCase() || 'UAH';
   const amount = parseFloat(document.getElementById('cn-amount').value) || 0;
   let rate = parseFloat(document.getElementById('cn-rate').value) || 0;
+  const dateVal = document.getElementById('cn-date').value || new Date().toISOString().slice(0,10);
   if (!amount) return showToast('err', 'Вкажіть суму');
   if (isUahCode(currencyRaw)) rate = 1;
   else if (!rate) return showToast('err', 'Вкажіть курс до грн');
   if (!db.cashNotes) db.cashNotes = [];
-  db.cashNotes.push({ id: uid(), currency: currencyRaw, amount, rate });
+  const nowIso = new Date().toISOString();
+
+  if (editCashNoteId) {
+    const n = db.cashNotes.find(x=>x.id===editCashNoteId);
+    if (n) {
+      n.currency = currencyRaw; n.amount = amount; n.rate = rate; n.date = dateVal;
+      n.updatedAt = nowIso;
+    }
+    showToast('ok','✓ Запис оновлено');
+    editCashNoteId = null;
+    document.getElementById('cn-submit-btn').textContent = '+ Додати';
+    document.getElementById('cn-cancel-btn').style.display = 'none';
+  } else {
+    db.cashNotes.push({ id: uid(), currency: currencyRaw, amount, rate, date: dateVal, createdAt: nowIso, updatedAt: nowIso });
+    showToast('ok','✓ Запис додано');
+  }
+
   save();
   document.getElementById('cn-currency').value = '';
   document.getElementById('cn-amount').value = '';
   document.getElementById('cn-rate').value = '';
   document.getElementById('cn-rate').disabled = false;
+  document.getElementById('cn-date').value = '';
+  document.getElementById('cn-date-display').value = '';
   renderCashNotes();
+};
+
+window.editCashNote = function(id) {
+  const n = (db.cashNotes||[]).find(x=>x.id===id);
+  if (!n) return;
+  editCashNoteId = id;
+  document.getElementById('cn-currency').value = n.currency||'';
+  document.getElementById('cn-amount').value = n.amount||'';
+  document.getElementById('cn-rate').value = n.rate||'';
+  document.getElementById('cn-rate').disabled = isUahCode(n.currency);
+  document.getElementById('cn-date').value = n.date||'';
+  document.getElementById('cn-date-display').value = n.date ? new Date(n.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'}) : '';
+  document.getElementById('cn-submit-btn').textContent = '✓ Зберегти зміни';
+  document.getElementById('cn-cancel-btn').style.display = 'inline-flex';
+  document.getElementById('cn-currency').scrollIntoView({behavior:'smooth',block:'center'});
+};
+
+window.cancelCashNoteEdit = function() {
+  editCashNoteId = null;
+  document.getElementById('cn-currency').value = '';
+  document.getElementById('cn-amount').value = '';
+  document.getElementById('cn-rate').value = '';
+  document.getElementById('cn-rate').disabled = false;
+  document.getElementById('cn-date').value = '';
+  document.getElementById('cn-date-display').value = '';
+  document.getElementById('cn-submit-btn').textContent = '+ Додати';
+  document.getElementById('cn-cancel-btn').style.display = 'none';
 };
 
 window.deleteCashNote = function(id) {
   db.cashNotes = (db.cashNotes||[]).filter(n => n.id !== id);
+  if (editCashNoteId === id) cancelCashNoteEdit();
   save(); renderCashNotes();
 };
 
