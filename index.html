@@ -128,7 +128,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; min-height: 38px; user-select: none; }
 .btn:active { transform: scale(.96); }
 .btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #000; }
+.btn-primary:hover { background: #000; box-shadow: 0 0 0 1px rgba(197,160,89,.35); }
 .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
 .btn-outline:hover { background: var(--accent-light); }
 .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
@@ -138,6 +138,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .btn-success { background: var(--green-light); color: var(--green); }
 .btn-success:hover { background: #e3e8e4; }
 .btn-sm { padding: 6px 11px; font-size: 12px; border-radius: 7px; min-height: 34px; }
+.btn-ghost.btn-icon { background: transparent; border-color: transparent; padding: 6px; width: 32px; min-height: 32px; justify-content: center; color: var(--text-muted); }
+.btn-ghost.btn-icon:hover { background: var(--accent-light); border-color: transparent; color: var(--accent); }
 
 /* PROGRESS */
 .progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
@@ -771,7 +773,7 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
         <div class="card-header">
           <div><div class="card-title" style="display:flex;align-items:center;gap:7px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><polyline points="2 6 12 13 22 6"/></svg> Цілі та конверти</div><div class="card-sub">Розподіліть заощадження по цілях</div></div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <div id="sav-unallocated-badge" style="display:none;font-size:12px;font-weight:600;background:var(--orange-light);color:var(--orange);padding:4px 10px;border-radius:20px;"></div>
+            <div id="sav-unallocated-badge" style="display:none;font-size:12px;font-weight:600;background:var(--orange-light);color:var(--orange);padding:4px 10px;border-radius:6px;border:1px solid rgba(166,110,56,.15);"></div>
             <button class="btn btn-outline btn-sm" onclick="openEnvModal()">+ Нова ціль</button>
           </div>
         </div>
@@ -1476,7 +1478,11 @@ let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#c5a059', saveTimer=null, isOnline=true;
 const COLORS=['#c5a059','#8b3a3a','#2d5a4c','#364f6b','#a66e38','#7a6a5a','#5c7a72','#6b4a5a'];
 
-// Мапа старих кольорів (попередні яскраві/проміжні палітри) на нові — для вже збережених категорій/конвертів
+// ── МІГРАЦІЯ КОЛЬОРІВ КАТЕГОРІЙ ──
+// 1) Пряма мапа для відомих старих палітр (швидкий і передбачуваний шлях)
+// 2) Для БУДЬ-ЯКОГО кольору, якого немає в поточній палітрі й немає в мапі —
+//    підбирається найближчий за відтінком колір із нової палітри (HSL-відстань),
+//    щоб жодна стара користувацька категорія не лишилась "не в тон".
 const LEGACY_COLOR_MAP = {
   '#7c6ef7':'#c5a059', '#f472b6':'#8b3a3a', '#22c55e':'#2d5a4c', '#3b82f6':'#364f6b',
   '#f97316':'#a66e38', '#eab308':'#9e8238', '#ef4444':'#6b4a5a', '#06b6d4':'#5c7a72',
@@ -1485,12 +1491,41 @@ const LEGACY_COLOR_MAP = {
   '#8c4a4a':'#8b3a3a', '#4a6b53':'#2d5a4c', '#4a637d':'#364f6b', '#9e8238':'#9e8238',
   '#3d3a37':'#6b4a5a'
 };
+function hexToHsl(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const r = parseInt(hex.slice(0,2),16)/255, g = parseInt(hex.slice(2,4),16)/255, b = parseInt(hex.slice(4,6),16)/255;
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+  let h=0, s=0, l=(mx+mn)/2;
+  if (mx !== mn) {
+    const d = mx-mn;
+    s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
+    if (mx===r) h=(g-b)/d+(g<b?6:0); else if (mx===g) h=(b-r)/d+2; else h=(r-g)/d+4;
+    h/=6;
+  }
+  return [h*360, s, l];
+}
+function nearestPaletteColor(hex) {
+  if (!/^#[0-9a-f]{3,6}$/i.test(hex)) return COLORS[0];
+  const [h1,s1,l1] = hexToHsl(hex);
+  let best = COLORS[0], bestDist = Infinity;
+  COLORS.forEach(c => {
+    const [h2,s2,l2] = hexToHsl(c);
+    let dh = Math.abs(h1-h2); if (dh > 180) dh = 360-dh;
+    const dist = (dh/180)**2 + (s1-s2)**2 + (l1-l2)**2*0.5;
+    if (dist < bestDist) { bestDist = dist; best = c; }
+  });
+  return best;
+}
 function migrateLegacyColors() {
   let changed = false;
+  const palette = COLORS.map(c=>c.toLowerCase());
   const fix = (arr) => { (arr||[]).forEach(item => {
     if (item && item.color) {
-      const mapped = LEGACY_COLOR_MAP[item.color.toLowerCase()];
-      if (mapped) { item.color = mapped; changed = true; }
+      const cur = item.color.toLowerCase();
+      if (palette.includes(cur)) return; // вже в новій палітрі — нічого не робимо
+      const mapped = LEGACY_COLOR_MAP[cur] || nearestPaletteColor(cur);
+      if (mapped && mapped.toLowerCase() !== cur) { item.color = mapped; changed = true; }
     }
   }); };
   fix(db.budgetCats); fix(db.incomeCats); fix(db.envelopes);
@@ -1632,7 +1667,7 @@ window.handleTopbarSearch = function(q) {
   const sb={active:'badge-green',vacation:'badge-yellow',inactive:'badge-red'}, sl={active:'Активний',vacation:'Відпустка',inactive:'Неактивний'};
   const tl={salary:'Окладник',hourly:'Погодинник',shift:'Змінник'};
   if(!emps.length){ tb.innerHTML=`<tr><td colspan="6"><div class="empty">Нічого не знайдено за «${q}»</div></td></tr>`; return; }
-  tb.innerHTML=emps.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openEmpModal('${e.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
+  tb.innerHTML=emps.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm btn-icon" onclick="openEmpModal('${e.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
 };
 
 // ── NAV ──
@@ -1705,7 +1740,7 @@ function renderEmployees() {
   if(!db.employees.length){ tb.innerHTML=`<tr><td colspan="6"><div class="empty">Додайте першого співробітника</div></td></tr>`; return; }
   const sb={active:'badge-green',vacation:'badge-yellow',inactive:'badge-red'},sl={active:'Активний',vacation:'Відпустка',inactive:'Неактивний'};
   const tl={salary:'Окладник',hourly:'Погодинник',shift:'Змінник'};
-  tb.innerHTML=db.employees.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openEmpModal('${e.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
+  tb.innerHTML=db.employees.map(e=>`<tr><td><div class="td-name">${e.name}</div><div class="td-sub">${e.dept||''}</div></td><td>${e.position||'—'}</td><td><span class="badge badge-purple">${tl[e.type]||'Окладник'}</span></td><td>${fmt(e.rate)} ${e.type==='hourly'?'/год':e.type==='shift'?'/зміну':'/міс'}</td><td><span class="badge ${sb[e.status]||'badge-green'}">${sl[e.status]||'Активний'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm btn-icon" onclick="openEmpModal('${e.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteEmp('${e.id}')">✕</button></div></td></tr>`).join('');
 }
 window.openEmpModal = function(id) {
   editEmpId=id||null; const emp=id?db.employees.find(e=>e.id===id):null;
@@ -1855,8 +1890,8 @@ function renderPayroll() {
       <span class="badge ${statusBadge[status]||'badge-yellow'}">${statusLabel[status]||'Очікує'}</span>
     </td>
     <td><div style="display:flex;gap:5px">
-      <button class="btn btn-ghost btn-sm" onclick="openPayModal('${emp.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-      <button class="btn btn-ghost btn-sm" onclick="showSlip('${emp.id}','${currentPayMonth}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="openPayModal('${emp.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="showSlip('${emp.id}','${currentPayMonth}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       ${entry?`<button class="btn btn-danger btn-sm" onclick="deletePayrollEntry('${entry.id}')">✕</button>`:''}
     </div></td>
   </tr>`;}).join('');
@@ -2007,7 +2042,7 @@ function renderPaymentsList(){
           <div style="font-size:12px;color:var(--text-muted)">${new Date(p.date).toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric'})}${p.note?` · ${p.note}`:''}</div>
         </div>
         <div style="display:flex;gap:5px">
-          <button class="btn btn-ghost btn-sm" onclick="editPayment('${p.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="editPayment('${p.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="btn btn-danger btn-sm" onclick="deletePayment('${p.id}')">✕</button>
         </div>
       </div>
@@ -2411,7 +2446,7 @@ function renderBudget() {
       <div class="budget-item-top">
         <div class="budget-icon" style="background:${cat.color}22;color:${cat.color}">${iconHtml}</div>
         <div class="budget-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openBudgetModal('${cat.id}');event.stopPropagation()" title="Редагувати"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openBudgetModal('${cat.id}');event.stopPropagation()" title="Редагувати"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="btn btn-danger btn-sm" onclick="deleteBudgetCat('${cat.id}');event.stopPropagation()">✕</button>
         </div>
       </div>
@@ -2419,7 +2454,7 @@ function renderBudget() {
       <div class="budget-amount" style="color:${over?'var(--red)':cat.color}">${fmt(spent)}</div>
       ${cat.limit ? `<div class="bp-track"><div class="bp-fill" style="width:${pct}%;background:${over?'var(--red)':cat.color}"></div></div>
       <div class="budget-meta"><span style="color:${over?'var(--red)':'inherit'}">${pct}% використано</span><span>Ліміт: ${fmt(cat.limit)}</span></div>
-      ${over ? `<div style="margin-top:5px;display:inline-flex;align-items:center;gap:4px;background:var(--red-light);color:var(--red);font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px">Перевищення: +${fmt(spent - cat.limit)}</div>` : ''}` : ''}
+      ${over ? `<div style="margin-top:5px;display:inline-flex;align-items:center;gap:4px;background:var(--red-light);color:var(--red);font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid rgba(139,58,58,.15)">Перевищення: +${fmt(spent - cat.limit)}</div>` : ''}` : ''}
     </div>`;
   }).join('') : `<div class="empty" style="grid-column:1/-1">Додайте першу категорію</div>`;
 
@@ -2576,7 +2611,7 @@ function renderExpenses() {
       <td style="color:var(--text-muted)" title="${(e.desc||'').replace(/"/g,'&quot;')}">${e.desc||'—'}</td>
       <td>${e.date?new Date(e.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td>
       <td style="font-weight:700;color:var(--red)">−${fmt(e.amount)}</td>
-      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editExpense('${e.id}')" title="Редагувати"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button> <button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">✕</button></td>
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm btn-icon" onclick="editExpense('${e.id}')" title="Редагувати"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button> <button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">✕</button></td>
     </tr>`;
   }).join('') : `<tr><td colspan="5"><div class="empty">Немає витрат за цей місяць</div></td></tr>`;
 }
@@ -3153,7 +3188,7 @@ function renderIncomeTable() {
   tb.innerHTML=shown.map(inc=>{
     const cat=db.incomeCats.find(c=>c.id===inc.catId);
     const catColor = cat?.color || 'var(--green)';
-    return `<tr><td><span class="badge" style="background:${catColor}22;color:${catColor};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openIncomeModal('${inc.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`;
+    return `<tr><td><span class="badge" style="background:${catColor}22;color:${catColor};display:inline-flex;align-items:center;gap:4px">${cat?renderIcon(cat.icon,'13px'):''} ${cat?.name||'—'}</span></td><td style="color:var(--text-muted)">${inc.desc||'—'}</td><td>${inc.date?new Date(inc.date+'T12:00:00').toLocaleDateString('uk-UA'):'—'}</td><td style="font-weight:700;color:var(--green)">+${fmt(inc.amount)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm btn-icon" onclick="openIncomeModal('${inc.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteIncome('${inc.id}')">✕</button></div></td></tr>`;
   }).join('');
   if(list.length>LIMIT) tb.innerHTML+=`<tr><td colspan="5" style="text-align:center;padding:10px;color:var(--text-muted);font-size:12px">Показано ${LIMIT} із ${list.length} записів</td></tr>`;
 }
@@ -3363,7 +3398,7 @@ window.renderSavings = function() {
       <div class="sav-bd-label">У конвертах</div>
       <div class="sav-bd-val" style="color:var(--orange)">${fmt(totalEnvelopes)}</div>
     </div>
-    <div class="sav-bd-item" style="border-color:${overAllocated>0?'var(--red)':'var(--accent)'}">
+    <div class="sav-bd-item" style="${overAllocated>0?'border-left:3px solid var(--red);':''}">
       <div class="sav-bd-label">Вільні кошти</div>
       <div class="sav-bd-val" style="color:${overAllocated>0?'var(--red)':'var(--accent)'}">${overAllocated>0?'−'+fmt(overAllocated):fmt(freeBalance)}</div>
     </div>`;
@@ -3753,7 +3788,7 @@ function renderEnvelopes(totalSaved) {
       <div class="env-card-top">
         <div class="env-icon-wrap" style="background:${color}22">${renderIcon(env.icon,'24px')}</div>
         <div class="env-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openEnvModal('${env.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openEnvModal('${env.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="btn btn-danger btn-sm" onclick="deleteEnvelope('${env.id}')">✕</button>
         </div>
       </div>
@@ -4092,7 +4127,7 @@ window.renderInventory = function() {
       <td style="font-weight:700;color:var(--accent)">${item.total>0?fmt(item.total):'—'}</td>
       <td><span class="badge ${condBadge}">${condLabel}</span></td>
       <td style="color:var(--text-muted);font-size:12px">${dateStr}${person?`<div class="td-sub">${person.name}</div>`:''}</td>
-      <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="openInvModal('${item.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteInvItem('${item.id}')">✕</button></div></td>
+      <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm btn-icon" onclick="openInvModal('${item.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-danger btn-sm" onclick="deleteInvItem('${item.id}')">✕</button></div></td>
     </tr>`;
   }).join('');
 };
@@ -4472,7 +4507,7 @@ function renderHistory() {
       <td style="color:var(--green);font-weight:700">${fmt(p.net)}</td>
       <td><span class="badge ${p.status==='paid'?'badge-green':'badge-yellow'}" style="cursor:pointer" onclick="togglePayStatus('${p.id}')">${p.status==='paid'?'✓ Виплачено':'Очікує'}</span></td>
       <td><div style="display:flex;gap:5px">
-        <button class="btn btn-ghost btn-sm" onclick="showSlip('${p.empId}','${p.month}')" title="Листок"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="showSlip('${p.empId}','${p.month}')" title="Листок"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></button>
         <button class="btn btn-danger btn-sm" onclick="deletePayrollEntry('${p.id}')" title="Видалити">✕</button>
       </div></td>
     </tr>`;
