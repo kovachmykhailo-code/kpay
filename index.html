@@ -15,14 +15,14 @@
 :root {
   --sidebar-bg: #181716; --sidebar-hover: #242220; --sidebar-active: #2d2a27;
   --sidebar-text: #8c857f; --sidebar-text-active: #f4f1ea;
-  --bg: #f9f8f5; --white: #ffffff; --border: #e6e3dc; --border-subtle: #f0ede6;
-  --text: #211f1e; --text-muted: #8a847c;
-  --accent: #2c2a29; --accent-light: #eeeae1; --gold-accent: #c5a059;
-  --green: #4a6b53; --green-light: #edf2ee;
-  --red: #8c4a4a; --red-light: #f7eded;
-  --orange: #a66e38; --orange-light: #f7f2ed;
-  --blue: #4a637d; --blue-light: #edf1f5;
-  --yellow: #9e8238; --yellow-light: #f7f5ed;
+  --bg: #F9F8F6; --white: #ffffff; --border: #E7E5E4; --border-subtle: rgba(231,229,228,.5);
+  --text: #1C1917; --text-muted: #78716C;
+  --accent: #1C1917; --accent-light: #F3F1EC; --gold-accent: #C5A059;
+  --green: #2D5A4C; --green-light: #EAF0EC;
+  --red: #8B3A3A; --red-light: #F8ECEC;
+  --orange: #A66E38; --orange-light: #F9F3EC;
+  --blue: #364F6B; --blue-light: #EEF2F6;
+  --yellow: #9E8238; --yellow-light: #F7F5ED;
   --card-r: 12px; --shadow: 0 4px 20px rgba(0,0,0,.02), 0 1px 3px rgba(0,0,0,.03);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; accent-color: var(--gold-accent); }
@@ -153,20 +153,20 @@ table { width: 100%; border-collapse: collapse; min-width: 480px; }
 thead th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; background: var(--bg); white-space: nowrap; }
 thead th:first-child { border-radius: 8px 0 0 8px; }
 thead th:last-child { border-radius: 0 8px 8px 0; }
-tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background-color .15s ease; }
 tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: #fafafa; }
+tbody tr:hover { background: #F4F3EF; }
 tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 .td-name { font-weight: 600; }
 .td-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 
 /* BADGE */
-.badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-.badge-green { background: var(--green-light); color: var(--green); }
-.badge-yellow { background: var(--yellow-light); color: #7a5f2a; }
-.badge-red { background: var(--red-light); color: var(--red); }
-.badge-blue { background: var(--blue-light); color: var(--blue); }
-.badge-purple { background: var(--accent-light); color: var(--accent); }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.badge-green { background: var(--green-light); color: var(--green); border-color: rgba(45,90,76,.15); }
+.badge-yellow { background: var(--yellow-light); color: var(--yellow); border-color: rgba(158,130,56,.15); }
+.badge-red { background: var(--red-light); color: var(--red); border-color: rgba(139,58,58,.15); }
+.badge-blue { background: var(--blue-light); color: var(--blue); border-color: rgba(54,79,107,.15); }
+.badge-purple { background: var(--accent-light); color: var(--accent); border-color: rgba(28,25,23,.12); }
 
 /* PERIOD TABS */
 .period-tabs { display: flex; gap: 3px; background: var(--bg); border-radius: 10px; padding: 3px; width: fit-content; }
@@ -264,9 +264,10 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
 /* FIREBASE STATUS PILL */
 .fb-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .fb-pill.online { background: var(--green-light); color: var(--green); }
-.fb-pill.offline { background: var(--yellow-light); color: #7a5f2a; }
+.fb-pill.offline { background: var(--yellow-light); color: #9e8238; }
 
-.badge-orange { background: var(--orange-light); color: var(--orange); }
+.badge-orange { background: var(--orange-light); color: var(--orange); border: 1px solid rgba(166,110,56,.15); }
+.divider-fade { height: 1px; width: 100%; background: linear-gradient(90deg, transparent 0%, var(--gold-accent) 50%, transparent 100%); opacity: .6; margin: 16px 0; }
 
 /* ANALYTICS */
 .an-metric-btn { background:var(--bg); color:var(--text-muted); border:1.5px solid var(--border); }
@@ -475,7 +476,7 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
     <div class="user-card">
       <div class="user-avatar">K</div>
       <div style="flex:1"><div class="user-name">Kovach</div><div class="user-role" id="user-status">Firebase · онлайн</div></div>
-      <div onclick="window._logout()" title="Вийти" style="cursor:pointer;color:#66615c;padding:4px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='#8c4a4a'" onmouseout="this.style.color='#66615c'">
+      <div onclick="window._logout()" title="Вийти" style="cursor:pointer;color:#66615c;padding:4px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='#8b3a3a'" onmouseout="this.style.color='#66615c'">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </div>
     </div>
@@ -508,6 +509,7 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
         <div class="period-tabs"><div class="period-tab active">Місяць</div></div>
       </div>
       <div class="stats-grid" id="dash-stats"></div>
+      <div class="divider-fade"></div>
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Виплата зарплати — <span id="prog-month-label"></span></div><div class="card-sub">Прогрес виплат поточного місяця</div></div>
@@ -738,6 +740,7 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
         <div class="sbc-sub" id="sav-total-sub"></div>
         <button class="sbc-edit-btn" onclick="openSavingsBaseModal()" style="display:inline-flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Початковий баланс</button>
       </div>
+      <div class="divider-fade"></div>
 
       <!-- ── INCOME VISUALIZATION ── -->
       <div class="card" id="sav-income-viz-card" style="margin-bottom:18px;">
@@ -1471,13 +1474,16 @@ const DOCREF = db_fs.collection('kpay').doc('main');
 let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], inventory:[], cashNotes:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{}, importRules:[] };
 let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#c5a059', saveTimer=null, isOnline=true;
-const COLORS=['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72','#7a6a5a','#3d3a37'];
+const COLORS=['#c5a059','#8b3a3a','#2d5a4c','#364f6b','#a66e38','#7a6a5a','#5c7a72','#6b4a5a'];
 
-// Мапа старих кольорів (попередня яскрава палітра) на нові — для вже збережених категорій/конвертів
+// Мапа старих кольорів (попередні яскраві/проміжні палітри) на нові — для вже збережених категорій/конвертів
 const LEGACY_COLOR_MAP = {
-  '#7c6ef7':'#c5a059', '#f472b6':'#8c4a4a', '#22c55e':'#4a6b53', '#3b82f6':'#4a637d',
+  '#7c6ef7':'#c5a059', '#f472b6':'#8b3a3a', '#22c55e':'#2d5a4c', '#3b82f6':'#364f6b',
   '#f97316':'#a66e38', '#eab308':'#9e8238', '#ef4444':'#6b4a5a', '#06b6d4':'#5c7a72',
-  '#8b5cf6':'#7a6a5a', '#14b8a6':'#3d3a37', '#a78bfa':'#c5a059', '#34d399':'#4a6b53'
+  '#8b5cf6':'#7a6a5a', '#14b8a6':'#3d3a37', '#a78bfa':'#c5a059', '#34d399':'#2d5a4c',
+  // попередня (недавня) палітра — м'яка міграція на оновлені відтінки Quiet Luxury
+  '#8c4a4a':'#8b3a3a', '#4a6b53':'#2d5a4c', '#4a637d':'#364f6b', '#9e8238':'#9e8238',
+  '#3d3a37':'#6b4a5a'
 };
 function migrateLegacyColors() {
   let changed = false;
@@ -1810,7 +1816,7 @@ function renderPayroll() {
     return {emp,entry,gross,tax,esv,net,fn,paidTotal,status};
   });
   const totalNet=empData.reduce((s,d)=>s+d.fn,0);
-  const AV=['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72'];
+  const AV=['#c5a059','#8b3a3a','#2d5a4c','#364f6b','#a66e38','#9e8238','#6b4a5a','#5c7a72'];
   // Прогрес-бари
   pbWrap.innerHTML=`<div class="emp-prog-card">
     <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Частка у фонді — ${monthName(month)} ${month.split('-')[0]}</div>
@@ -3060,21 +3066,21 @@ window.renderIncomeSummary = function() {
 
       <!-- Salary -->
       <div style="background:var(--bg);border-radius:12px;padding:14px 16px;border:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#4a637d;opacity:.85">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#364f6b;opacity:.85">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">ЗП виплачено</span>
         </div>
-        <div style="font-size:24px;font-weight:300;color:#4a637d;letter-spacing:-.02em">${fmt(salaryTotal)}</div>
+        <div style="font-size:24px;font-weight:300;color:#364f6b;letter-spacing:-.02em">${fmt(salaryTotal)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px">надходження із заробітної плати</div>
       </div>
 
       <!-- Other incomes -->
       <div style="background:var(--bg);border-radius:12px;padding:14px 16px;border:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#4a6b53;opacity:.85">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#2d5a4c;opacity:.85">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
           <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Інші надходження</span>
         </div>
-        <div style="font-size:24px;font-weight:300;color:#4a6b53;letter-spacing:-.02em">${fmt(otherTotal)}</div>
+        <div style="font-size:24px;font-weight:300;color:#2d5a4c;letter-spacing:-.02em">${fmt(otherTotal)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px">окрім заробітної плати</div>
       </div>
 
@@ -3099,8 +3105,8 @@ window.renderIncomeSummary = function() {
           <span>${sp}% ЗП · ${op}% інші</span>
         </div>
         <div style="height:7px;border-radius:20px;overflow:hidden;display:flex;background:var(--border)">
-          <div style="width:${sp}%;background:#4a637d;transition:width .5s"></div>
-          <div style="width:${op}%;background:#4a6b53;transition:width .5s"></div>
+          <div style="width:${sp}%;background:#364f6b;transition:width .5s"></div>
+          <div style="width:${op}%;background:#2d5a4c;transition:width .5s"></div>
         </div>
       </div>`;
     })() : ''}
@@ -3112,7 +3118,7 @@ window.renderIncomeSummary = function() {
       <div style="display:flex;flex-direction:column;gap:8px">
         ${catBreakdown.map(({cat, sum}) => {
           const pct = otherTotal > 0 ? Math.min(100, Math.round((sum/otherTotal)*100)) : 0;
-          const color = cat.color || '#4a6b53';
+          const color = cat.color || '#2d5a4c';
           return `<div style="display:grid;grid-template-columns:1fr auto 80px;align-items:center;gap:10px">
             <div style="display:flex;align-items:center;gap:7px;min-width:0">
               <div style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:${color}"></div>
@@ -3130,7 +3136,7 @@ window.renderIncomeSummary = function() {
       </div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:var(--text)">Разом інші</span>
-        <span style="font-size:13px;font-weight:700;color:#4a6b53">${fmt(otherTotal)}</span>
+        <span style="font-size:13px;font-weight:700;color:#2d5a4c">${fmt(otherTotal)}</span>
       </div>
     </div>` : ''}
   `;
@@ -3422,7 +3428,7 @@ window.renderSavings = function() {
     const barH = Math.abs(d.saved/range*cH);
     const bx = gx(i) - barW/2;
     const by = d.saved>0 ? gy(d.saved+Math.max(0,minVal)) : gy(Math.max(0,minVal));
-    const color = d.saved>=0 ? '#4a6b53' : '#8c4a4a';
+    const color = d.saved>=0 ? '#2d5a4c' : '#8b3a3a';
     bars+=`<rect x="${bx}" y="${by}" width="${barW}" height="${Math.max(2,barH)}" fill="${color}" opacity="0.35" rx="2">
       <title>${monthShort(d.month)}: ${d.saved>=0?'+':''}${fmt(d.saved)}</title>
     </rect>`;
@@ -3451,8 +3457,8 @@ window.renderSavings = function() {
     </svg>
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;padding:0 4px">
       <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:12px;height:3px;background:#2c2a29;border-radius:2px"></div>Накопичено</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#4a6b53;opacity:.7"></div>Заощаджено за місяць (+)</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#8c4a4a;opacity:.7"></div>Дефіцит за місяць (−)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#2d5a4c;opacity:.7"></div>Заощаджено за місяць (+)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:#8b3a3a;opacity:.7"></div>Дефіцит за місяць (−)</div>
     </div>`;
 
   // Income visualization
@@ -3647,11 +3653,11 @@ function renderSavIncomeViz(monthData) {
       const xExp = baseX + W_BAR + GAP/2;
       // income bar (two-tone: paid=blue, income=green)
       if (r.income > 0) {
-        bars += `<rect x="${xInc}" y="${iy}" width="${W_BAR}" height="${Math.max(2,barH(r.income))}" fill="#4a6b53" rx="3 3 0 0"><title>Надходження: ${fmt(r.income)}</title></rect>`;
+        bars += `<rect x="${xInc}" y="${iy}" width="${W_BAR}" height="${Math.max(2,barH(r.income))}" fill="#2d5a4c" rx="3 3 0 0"><title>Надходження: ${fmt(r.income)}</title></rect>`;
       }
-      bars += `<rect x="${xInc}" y="${py}" width="${W_BAR}" height="${Math.max(2,ph)}" fill="#4a637d" rx="${r.income>0?'0':'3 3'} 0 0"><title>ЗП: ${fmt(r.paid)}</title></rect>`;
+      bars += `<rect x="${xInc}" y="${py}" width="${W_BAR}" height="${Math.max(2,ph)}" fill="#364f6b" rx="${r.income>0?'0':'3 3'} 0 0"><title>ЗП: ${fmt(r.paid)}</title></rect>`;
       // expense bar
-      bars += `<rect x="${xExp}" y="${ey}" width="${W_BAR}" height="${Math.max(2,eh)}" fill="#8c4a4a" rx="3 3 0 0" opacity="0.85"><title>Витрати: ${fmt(r.expenses)}</title></rect>`;
+      bars += `<rect x="${xExp}" y="${ey}" width="${W_BAR}" height="${Math.max(2,eh)}" fill="#8b3a3a" rx="3 3 0 0" opacity="0.85"><title>Витрати: ${fmt(r.expenses)}</title></rect>`;
       // net dot
       const net = r.saved;
       const dotY = gy(Math.max(0, net));
@@ -3675,13 +3681,13 @@ function renderSavIncomeViz(monthData) {
       </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 2px">
         <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
-          <div style="width:10px;height:10px;border-radius:2px;background:#4a637d"></div>ЗП
+          <div style="width:10px;height:10px;border-radius:2px;background:#364f6b"></div>ЗП
         </div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
-          <div style="width:10px;height:10px;border-radius:2px;background:#4a6b53"></div>Надходження
+          <div style="width:10px;height:10px;border-radius:2px;background:#2d5a4c"></div>Надходження
         </div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-muted)">
-          <div style="width:10px;height:10px;border-radius:2px;background:#8c4a4a;opacity:.85"></div>Витрати
+          <div style="width:10px;height:10px;border-radius:2px;background:#8b3a3a;opacity:.85"></div>Витрати
         </div>
       </div>`;
   }
@@ -3713,16 +3719,16 @@ function vizFlowBar(paid, income, expenses) {
         <span style="color:${net>=0?'var(--accent)':'var(--red)'}">Результат: ${net>=0?'+':''}${fmt(net)}</span>
       </div>
       <div style="height:8px;border-radius:20px;overflow:hidden;display:flex;background:var(--border)">
-        <div style="width:${paidPct}%;background:#4a637d;transition:width .5s"></div>
-        <div style="width:${incPct}%;background:#4a6b53;transition:width .5s"></div>
+        <div style="width:${paidPct}%;background:#364f6b;transition:width .5s"></div>
+        <div style="width:${incPct}%;background:#2d5a4c;transition:width .5s"></div>
       </div>
       <div style="height:5px;border-radius:20px;overflow:hidden;margin-top:3px;background:var(--border)">
-        <div style="width:${expPct}%;background:#8c4a4a;opacity:.85;transition:width .5s"></div>
+        <div style="width:${expPct}%;background:#8b3a3a;opacity:.85;transition:width .5s"></div>
       </div>
       <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#4a637d"></div>ЗП ${paidPct}%</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#4a6b53"></div>Надх. ${incPct}%</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#8c4a4a;opacity:.85"></div>Витр. ${expPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#364f6b"></div>ЗП ${paidPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#2d5a4c"></div>Надх. ${incPct}%</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)"><div style="width:8px;height:8px;border-radius:2px;background:#8b3a3a;opacity:.85"></div>Витр. ${expPct}%</div>
       </div>
     </div>`;
 }
@@ -4092,7 +4098,7 @@ window.renderInventory = function() {
 };
 
 // ── ANALYTICS PAGE ──
-const AN_COLORS = ['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72'];
+const AN_COLORS = ['#c5a059','#8b3a3a','#2d5a4c','#364f6b','#a66e38','#9e8238','#6b4a5a','#5c7a72'];
 let anActiveEmps = new Set();
 let anActiveMetrics = new Set(['gross']);
 
@@ -4120,7 +4126,7 @@ window.toggleAnMetric = function(metric, btn) {
   renderAnalytics();
 };
 
-const METRIC_COLORS = { gross:'#c5a059', net:'#4a6b53', paid:'#4a637d', tax:'#8c4a4a' };
+const METRIC_COLORS = { gross:'#c5a059', net:'#2d5a4c', paid:'#364f6b', tax:'#8b3a3a' };
 const METRIC_LABELS = { gross:'Нараховано', net:'До виплати', paid:'Виплачено', tax:'Податок' };
 
 function renderAnalytics() {
@@ -4585,7 +4591,7 @@ function seedDemoData() {
   const ids=[uid(),uid(),uid()];
   db.employees=[{id:ids[0],name:'Іванова Олена Петрівна',position:'Менеджер',dept:'Продажі',type:'salary',rate:25000,hire:'2022-03-01',status:'active',note:''},{id:ids[1],name:'Коваленко Дмитро Іванович',position:'Програміст',dept:'IT',type:'hourly',rate:250,hire:'2023-01-15',status:'active',note:''},{id:ids[2],name:'Мельник Тетяна Олегівна',position:'Бухгалтер',dept:'Фінанси',type:'salary',rate:20000,hire:'2021-09-01',status:'vacation',note:''}];
   for(let i=0;i<=11;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.employees.forEach(emp=>{ const base=calcGross(emp,db.settings.hours); const{gross,tax,esv,net}=calcTaxes(base); db.payroll.push({id:uid(),empId:emp.id,month:key,gross,tax,esv,net,hours:db.settings.hours,bonus:0,advance:0,deductions:0,status:i>0?'paid':(emp.id===ids[0]?'paid':'pending'),note:''}); }); }
-  const bc=['#c5a059','#4a637d','#a66e38','#4a6b53','#6b4a5a','#9e8238'];
+  const bc=['#c5a059','#364f6b','#a66e38','#2d5a4c','#6b4a5a','#9e8238'];
   [['Авто','',8000],['Будинок','',12000],['Відпочинок','',5000],['Подарунки','',3000],['Внески','',2000],['Їжа','',6000]].forEach(([name,icon,limit],idx)=>{ const id=uid(); db.budgetCats.push({id,name,icon,limit,color:bc[idx]}); db.expenses.push({id:uid(),catId:id,amount:Math.round(limit*.45+Math.random()*limit*.25),date:thisMonth()+'-10',desc:'Приклад'}); });
   [['Фріланс',''],['Оренда',''],['Дивіденди',''],['Продаж','']].forEach(([name,icon])=>{ const id=uid(); db.incomeCats.push({id,name,icon}); for(let i=0;i<6;i++){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; db.incomes.push({id:uid(),catId:id,amount:Math.round(2000+Math.random()*8000),date:key+'-15',desc:'Надходження'}); } });
 }
@@ -4667,7 +4673,7 @@ function showAuthScreen(errorMsg) {
       };
       err.textContent = msgs[e.code] || 'Помилка входу';
       const inp = document.getElementById('auth-pass');
-      inp.style.borderColor = '#8c4a4a';
+      inp.style.borderColor = '#8b3a3a';
       inp.style.animation = 'shake .3s ease';
       setTimeout(() => { inp.style.borderColor = '#3a362f'; inp.style.animation = ''; }, 600);
     }
