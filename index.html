@@ -775,6 +775,44 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover, input[type="date"]
         <div class="env-grid" id="env-grid"></div>
       </div>
 
+      <!-- Cash notes: готівка у валютах -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <div><div class="card-title">Нотатки: готівка у валютах</div><div class="card-sub">Довідково — не входить у розрахунок заощаджень вище</div></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Валюта</th>
+              <th>Сума</th>
+              <th>Курс до грн</th>
+              <th>Еквівалент, грн</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="cash-notes-tbody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="form-row" style="margin:0;min-width:100px">
+            <label style="font-size:11px">Валюта</label>
+            <input id="cn-currency" type="text" placeholder="USD" maxlength="6" style="text-transform:uppercase" oninput="updateCashNoteRateState()">
+          </div>
+          <div class="form-row" style="margin:0;min-width:120px">
+            <label style="font-size:11px">Сума</label>
+            <input id="cn-amount" type="number" placeholder="0" min="0" step="0.01">
+          </div>
+          <div class="form-row" style="margin:0;min-width:120px">
+            <label style="font-size:11px">Курс до грн</label>
+            <input id="cn-rate" type="number" placeholder="1" min="0" step="0.01">
+          </div>
+          <button class="btn btn-primary" onclick="addCashNote()" style="height:40px">+ Додати</button>
+          <div style="margin-left:auto;text-align:right">
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Разом у грн</div>
+            <div id="cash-notes-total" style="font-size:20px;font-weight:300;color:var(--accent)">0 грн</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Monthly table -->
       <div class="card" style="margin-top:16px;">
         <div class="card-header"><div class="card-title">Деталі по місяцях</div></div>
@@ -1396,7 +1434,7 @@ const auth = firebase.auth();
 const DOCREF = db_fs.collection('kpay').doc('main');
 
 // ── STATE ──
-let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], inventory:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{}, importRules:[] };
+let db = { employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[], envelopes:[], inventory:[], cashNotes:[], savingsBase:0, savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}, budgetLimits:{}, importRules:[] };
 let editEmpId=null, editPayId=null, editBudgetId=null, editIncomeId=null;
 let currentPayMonth='', selectedColor='#c5a059', saveTimer=null, isOnline=true;
 const COLORS=['#c5a059','#8c4a4a','#4a6b53','#4a637d','#a66e38','#9e8238','#6b4a5a','#5c7a72','#7a6a5a','#3d3a37'];
@@ -1446,6 +1484,7 @@ async function loadFromFirebase() {
       if (!db.envelopes) db.envelopes = [];
       if (!db.inventory) db.inventory = [];
       if (!db.importRules) db.importRules = [];
+      if (!db.cashNotes) db.cashNotes = [];
       if (db.savingsBase === undefined) db.savingsBase = 0;
       if (migrateLegacyColors()) saveToFirebase();
     } else {
@@ -3175,6 +3214,7 @@ window.renderSavings = function() {
   // Баланс-картка
   const totalEnvelopes = getSavEnvelopesTotal();
   const freeBalance = Math.max(0, totalSaved - totalEnvelopes);
+  const overAllocated = totalEnvelopes - totalSaved; // >0, якщо в конвертах більше, ніж реально заощаджено
 
   document.getElementById('sav-total-amount').textContent =
     Number(totalSaved).toLocaleString('uk-UA',{maximumFractionDigits:0}) + ' ' + (db.settings.currency||'грн');
@@ -3207,15 +3247,22 @@ window.renderSavings = function() {
       <div class="sav-bd-label">У конвертах</div>
       <div class="sav-bd-val" style="color:var(--orange)">${fmt(totalEnvelopes)}</div>
     </div>
-    <div class="sav-bd-item" style="border-color:var(--accent)">
+    <div class="sav-bd-item" style="border-color:${overAllocated>0?'var(--red)':'var(--accent)'}">
       <div class="sav-bd-label">Вільні кошти</div>
-      <div class="sav-bd-val" style="color:var(--accent)">${fmt(freeBalance)}</div>
+      <div class="sav-bd-val" style="color:${overAllocated>0?'var(--red)':'var(--accent)'}">${overAllocated>0?'−'+fmt(overAllocated):fmt(freeBalance)}</div>
     </div>`;
 
-  // Нерозподілений залишок badge
+  // Нерозподілений залишок / перерозподіл badge
   const unallocBadge = document.getElementById('sav-unallocated-badge');
-  if (freeBalance > 0 && (db.envelopes||[]).length > 0) {
+  if (overAllocated > 0) {
     unallocBadge.style.display = 'inline-block';
+    unallocBadge.style.background = 'var(--red-light)';
+    unallocBadge.style.color = 'var(--red)';
+    unallocBadge.textContent = '⚠ У конвертах на ' + fmt(overAllocated) + ' більше, ніж реально заощаджено';
+  } else if (freeBalance > 0 && (db.envelopes||[]).length > 0) {
+    unallocBadge.style.display = 'inline-block';
+    unallocBadge.style.background = 'var(--orange-light)';
+    unallocBadge.style.color = 'var(--orange)';
     unallocBadge.textContent = 'Нерозподілено: ' + fmt(freeBalance);
   } else {
     unallocBadge.style.display = 'none';
@@ -3303,6 +3350,9 @@ window.renderSavings = function() {
 
   // Envelopes grid
   renderEnvelopes(totalSaved);
+
+  // Cash notes (готівка у валютах) — довідково
+  renderCashNotes();
 
   // Monthly table
   const tbody = document.getElementById('sav-tbody');
@@ -3749,6 +3799,66 @@ window.deleteEnvTx = function(envId, txId) {
   env.transactions = (env.transactions||[]).filter(t=>t.id!==txId);
   save(); renderEnvAllocTxs(env); renderSavings();
   showToast('ok','✓ Транзакцію видалено');
+};
+
+// ── CASH NOTES (готівка у валютах, довідково) ──
+function isUahCode(code) { const c=(code||'').trim().toUpperCase(); return c==='UAH' || c==='ГРН' || c===''; }
+
+window.updateCashNoteRateState = function() {
+  const rateInput = document.getElementById('cn-rate');
+  if (isUahCode(document.getElementById('cn-currency').value)) {
+    rateInput.value = '1'; rateInput.disabled = true;
+  } else {
+    rateInput.disabled = false;
+  }
+};
+
+function getCashNotesTotal() {
+  return (db.cashNotes||[]).reduce((s,n) => s + (isUahCode(n.currency) ? n.amount : n.amount * (n.rate||0)), 0);
+}
+
+function renderCashNotes() {
+  const tbody = document.getElementById('cash-notes-tbody');
+  if (!tbody) return;
+  const notes = db.cashNotes||[];
+  if (!notes.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px">Записів ще немає</td></tr>`;
+  } else {
+    tbody.innerHTML = notes.map(n => {
+      const uah = isUahCode(n.currency);
+      const equiv = uah ? n.amount : n.amount * (n.rate||0);
+      return `<tr>
+        <td style="font-weight:600">${n.currency||'UAH'}</td>
+        <td>${fmt(n.amount)}</td>
+        <td>${uah?'—':fmt(n.rate||0)}</td>
+        <td style="font-weight:600;color:var(--accent)">${fmt(equiv)} грн</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteCashNote('${n.id}')">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('cash-notes-total').textContent = fmt(getCashNotesTotal()) + ' грн';
+}
+
+window.addCashNote = function() {
+  const currencyRaw = document.getElementById('cn-currency').value.trim().toUpperCase() || 'UAH';
+  const amount = parseFloat(document.getElementById('cn-amount').value) || 0;
+  let rate = parseFloat(document.getElementById('cn-rate').value) || 0;
+  if (!amount) return showToast('err', 'Вкажіть суму');
+  if (isUahCode(currencyRaw)) rate = 1;
+  else if (!rate) return showToast('err', 'Вкажіть курс до грн');
+  if (!db.cashNotes) db.cashNotes = [];
+  db.cashNotes.push({ id: uid(), currency: currencyRaw, amount, rate });
+  save();
+  document.getElementById('cn-currency').value = '';
+  document.getElementById('cn-amount').value = '';
+  document.getElementById('cn-rate').value = '';
+  document.getElementById('cn-rate').disabled = false;
+  renderCashNotes();
+};
+
+window.deleteCashNote = function(id) {
+  db.cashNotes = (db.cashNotes||[]).filter(n => n.id !== id);
+  save(); renderCashNotes();
 };
 
 // ── INVENTORY ──
@@ -4275,7 +4385,7 @@ window.saveSettings = function() {
 window.resetSettings = function() { db.settings={pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}; save(); loadSettings(); showToast('ok','✓ Скинуто до стандартних'); };
 window.exportData = function() { const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='kpay_backup_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); };
 window.importData = function(e) { const file=e.target.files[0]; if(!file)return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(d.employees&&d.payroll){db=d;saveToFirebase();renderDashboard();showToast('ok','✓ Дані імпортовано');} }catch{alert('Помилка файлу');} }; r.readAsText(file); };
-window.clearData = function() { db={employees:[],payroll:[],budgetCats:[],expenses:[],incomeCats:[],incomes:[],envelopes:[],savingsBase:0,savingsBaseNote:'',budgetLimits:{},importRules:[],settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}}; saveToFirebase(); goto('dashboard'); };
+window.clearData = function() { db={employees:[],payroll:[],budgetCats:[],expenses:[],incomeCats:[],incomes:[],envelopes:[],inventory:[],cashNotes:[],savingsBase:0,savingsBaseNote:'',budgetLimits:{},importRules:[],settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176}}; saveToFirebase(); goto('dashboard'); };
 window.clearPayrollOnly = function() { if(!confirm('Видалити всі записи нарахувань та історію?')) return; db.payroll=[]; save(); showToast('ok','✓ Нарахування очищено'); renderDashboard(); updatePendingBadge(); };
 window.clearOrphanPayroll = function() {
   const before=db.payroll.length;
