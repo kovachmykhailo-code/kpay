@@ -219,7 +219,10 @@ tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 .donut-legend { display: flex; flex-direction: column; gap: 7px; }
 .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-.legend-name { flex: 1; color: var(--text-muted); }
+.legend-name { flex: 1; min-width: 0; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+.legend-name > svg, .legend-dot { flex-shrink: 0; }
+.legend-name > span:last-child { overflow-wrap: anywhere; }
+.legend-val { white-space: nowrap; }
 .legend-val { font-weight: 400; color: var(--text); }
 .legend-pct { font-size: 11px; color: var(--text-muted); }
 
@@ -836,7 +839,7 @@ tbody tr:hover { background: #f5f5ef; }
         <div class="card">
           <div class="card-header"><div class="card-title">Додати витрату</div></div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-            <div class="form-row" style="flex:2;min-width:130px;"><label>Категорія</label><select id="exp-cat"></select></div>
+            <div class="form-row" style="flex:2;min-width:130px;"><label>Категорія</label><select id="exp-cat" aria-label="Категорія витрати"></select></div>
             <div class="form-row" style="flex:1;min-width:90px;"><label>Сума</label><input type="number" id="exp-amount" placeholder="0"></div>
             <div class="form-row" style="flex:1;min-width:110px;"><label>Дата</label>
               <div style="position:relative">
@@ -1198,7 +1201,7 @@ tbody tr:hover { background: #f5f5ef; }
               <div class="form-row"><label>ЄСВ (%)</label><input type="number" id="s-esv"></div>
               <div class="form-row"><label>Базова валюта обліку</label><select id="s-currency"><option value="грн">грн (₴)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option></select></div>
               <div class="form-row"><label>Норма годин/місяць</label><input type="number" id="s-hours"></div>
-              <label class="form-row"><span>Як враховувати зарплату в русі коштів</span><select id="s-cash-mode" onchange="updateCashModeForm()"><option value="unassigned">Поки не враховувати</option><option value="employer">Облік роботодавця</option><option value="personal">Особистий бюджет</option></select></label>
+              <label class="form-row"><span>Як враховувати зарплату в русі коштів</span><select id="s-cash-mode" onchange="updateCashModeForm()"><option value="legacy">Усі фактичні виплати</option><option value="excluded">Без зарплатних виплат</option><option value="employer">Облік роботодавця</option><option value="personal">Особистий бюджет</option></select></label>
               <label class="form-row"><span>Власник особистого бюджету</span><select id="s-cash-owner"></select></label>
             </div>
             <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
@@ -1823,7 +1826,7 @@ function emptyDb() {
   return {
     employees:[], payroll:[], budgetCats:[], expenses:[], incomeCats:[], incomes:[],
     envelopes:[], inventory:[], cashNotes:[], savingsBase:0, savingsBaseDate:'',
-    savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176,cashMode:'unassigned',ownerId:''},
+    savingsBaseNote:'', settings:{pdfo:18,vijsk:5,esv:22,currency:'грн',hours:176,cashMode:'legacy',ownerId:''},
     budgetLimits:{}, importRules:[]
   };
 }
@@ -1834,6 +1837,8 @@ function normalizeDb(data) {
   for (const [key,value] of Object.entries(defaults)) {
     if (Array.isArray(value)&&result[key]==null) result[key]=[];
   }
+  // The first cash-mode release initialized existing accounts to 'unassigned'.
+  if (result.settings.cashMode==='unassigned') result.settings.cashMode='legacy';
   if (result.settings.currency==='UAH') result.settings.currency='грн';
   return result;
 }
@@ -2921,6 +2926,12 @@ function categoryLimit(cat,month) {
   if (!cat.limitHistory?.length) return Math.max(0,cat.limit||0);
   return Math.max(0,[...cat.limitHistory].sort((a,b)=>b.from.localeCompare(a.from)).find(row=>row.from<=month)?.limit||0);
 }
+function categoryOptions(categories, selectedId) {
+  return categories.map(category =>
+    `<option value="${safeId(category.id)}"${category.id===selectedId?' selected':''}>${htmlText(category.name)}</option>`
+  ).join('');
+}
+
 function expenseCategories() {
   return [...db.budgetCats,{id:'',name:'Без категорії',icon:'',color:'#8a847c'}];
 }
@@ -3040,7 +3051,8 @@ function renderBudget() {
   const prevMonthExp = db.expenses.filter(e => e.date && e.date.startsWith(prevMonth));
   const prevMonthName = monthName(prevMonth);
 
-  document.getElementById('exp-cat').innerHTML = db.budgetCats.filter(c=>!c.archivedFrom).map(c=>`<option value="${safeId(c.id)}">${htmlText(c.icon)} ${htmlText(c.name)}</option>`).join('');
+  const categoryPicker=document.getElementById('exp-cat');
+  categoryPicker.innerHTML=categoryOptions(db.budgetCats.filter(c=>!c.archivedFrom),categoryPicker.value);
   drawDonut('budget-donut','budget-legend', expenseCategories().map(cat=>({
     name:cat.name,
     value:monthExp.filter(e=>expenseCategoryId(e)===cat.id).reduce((s,e)=>s+(e.amount||0),0),
@@ -3085,7 +3097,7 @@ function renderBudgetStats() {
   // Фільтр по категоріях
   const catSel = document.getElementById('budget-cat-filter');
   const prevCat = catSel.value;
-  catSel.innerHTML = expenseCategories().map(c=>`<option value="${safeId(c.id)}">${htmlText(c.icon)} ${htmlText(c.name)}</option>`).join('');
+  catSel.innerHTML=categoryOptions(expenseCategories(),prevCat);
   if (prevCat && db.budgetCats.find(c=>c.id===prevCat)) catSel.value = prevCat;
   renderBudgetCatChart();
 
@@ -3198,8 +3210,7 @@ let editingExpenseId = null;
 window.editExpense = function(id) {
   const e = db.expenses.find(x => x.id === id); if (!e) return;
   editingExpenseId = id;
-  document.getElementById('ee-cat').innerHTML = expenseCategories().filter(c=>!c.archivedFrom||c.id===e.catId).map(c => `<option value="${safeId(c.id)}">${htmlText(c.icon)} ${htmlText(c.name)}</option>`).join('');
-  document.getElementById('ee-cat').value = e.catId;
+  document.getElementById('ee-cat').innerHTML=categoryOptions(expenseCategories().filter(c=>!c.archivedFrom||c.id===e.catId),expenseCategoryId(e));
   document.getElementById('ee-amount').value = e.amount;
   document.getElementById('ee-date').value = e.date;
   const d = new Date(e.date + 'T12:00:00');
@@ -3506,8 +3517,9 @@ window.renderImportPreview = function() {
     `Знайдено ${impRows.length} операцій. Автоматично визначено категорію для ${resolved}, потребують уваги — ${impRows.length - resolved}.` +
     (dupCount ? ` ⚠ Можливих дублікатів — ${dupCount} (позначені жовтим).` : '');
 
-  const rowOpts = (selId,expense) => '<option value="">Без категорії</option>' +
-    (expense?db.budgetCats.filter(c=>!c.archivedFrom):db.incomeCats).map(c => `<option value="${safeId(c.id)}" ${c.id === selId ? 'selected' : ''}>${htmlText(c.icon || '')} ${htmlText(c.name)}</option>`).join('');
+  const rowOpts = (selId,expense) => categoryOptions(
+    [{id:'',name:'Без категорії'},...(expense?db.budgetCats.filter(c=>!c.archivedFrom):db.incomeCats)],selId
+  );
 
   const tb = document.getElementById('imp-tbody');
   tb.innerHTML = impRows.map((r, i) => {
@@ -3561,7 +3573,7 @@ window.openIncomeModal = function(id) {
   populateIncomeCats();
   const todayIso=localDate();
   if(inc){
-    document.getElementById('ic-cat').value=inc.catId;
+    document.getElementById('ic-cat').value=incomeCategoryId(inc);
     document.getElementById('ic-amount').value=inc.amount;
     document.getElementById('ic-date').value=inc.date;
     const d=new Date(inc.date+'T12:00:00');
@@ -3705,7 +3717,7 @@ window.renderIncomeSummary = function() {
           <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">${payrollOut||db.settings.cashMode==='employer'?'Виплати працівникам':'Отримана зарплата'}</span>
         </div>
         <div style="font-size:24px;font-weight:300;color:#364f6b;letter-spacing:-.02em">${fmt(payrollOut||salaryTotal)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${db.settings.cashMode==='employer'?'Витрати за датою виплати':db.settings.cashMode==='personal'?'За датою виплати власнику бюджету':'Оберіть режим обліку в налаштуваннях'}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${db.settings.cashMode==='employer'?'Витрати за датою виплати':db.settings.cashMode==='personal'?'За датою виплати власнику бюджету':db.settings.cashMode==='legacy'?(db.savingsBaseDate?'Фактичні виплати за датою платежу':'Фактичні виплати за місяцем нарахування'):'Вимкнено в налаштуваннях'}</div>
       </div>
 
       <!-- Other incomes -->
@@ -3912,22 +3924,36 @@ function renderPayModalStats() {
 // Допоміжна: повертає суму виплат по всіх співробітниках за місяць
 // Важливо: сумуються ВСІ фактичні виплати (payments), незалежно від статусу
 // нарахування (paid/partial/pending) — часткові виплати враховуються повністю.
+function payrollReceiptDate(entry,payment) {
+  // Preserve the month-based report in the legacy mode unless a dated opening balance was set.
+  return db.settings.cashMode==='legacy'&&!db.savingsBaseDate ? `${entry.month}-01` : payment.date;
+}
+
 function cashPayrolls(includesDate, ownerId='') {
   return money(db.payroll.reduce((sum,entry)=>{
     if (ownerId&&entry.empId!==ownerId) return sum;
-    return sum+getEntryPayments(entry).filter(p=>validDate(p.date)&&includesDate(p.date)).reduce((subtotal,p)=>subtotal+p.amount,0);
+    return getEntryPayments(entry).reduce((subtotal,payment)=>{
+      const date=payrollReceiptDate(entry,payment);
+      return validDate(date)&&includesDate(date)?subtotal+(Number(payment.amount)||0):subtotal;
+    },sum);
   },0));
 }
 
-function getSavPayrollPaid(month) {
+function savingsPayrollReceipts(includesDate) {
   const {cashMode,ownerId}=db.settings;
-  return cashMode==='personal'&&ownerId?cashPayrolls(date=>date.startsWith(month),ownerId):0;
+  if (cashMode==='legacy') return cashPayrolls(includesDate);
+  return cashMode==='personal'&&ownerId?cashPayrolls(includesDate,ownerId):0;
+}
+
+function getSavPayrollPaid(month) {
+  return savingsPayrollReceipts(date=>date.startsWith(month));
 }
 
 function getSavPayrollHasPartial(month) {
-  return db.settings.cashMode==='personal'&&db.payroll.some(entry=>
-    entry.empId===db.settings.ownerId&&payrollBalance(entry).status==='partial'&&
-    getEntryPayments(entry).some(p=>p.date.startsWith(month)));
+  const {cashMode,ownerId}=db.settings;
+  return db.payroll.some(entry=>(cashMode==='legacy'||(cashMode==='personal'&&entry.empId===ownerId))&&
+    payrollBalance(entry).status==='partial'&&getEntryPayments(entry).some(payment=>
+      payrollReceiptDate(entry,payment)?.startsWith(month)));
 }
 
 function getSavIncome(month) {
@@ -3939,15 +3965,20 @@ function getSavExpenses(month) {
   return expenses+(db.settings.cashMode==='employer'?cashPayrolls(date=>date.startsWith(month)):0);
 }
 
+function savingsOpeningDate() {
+  if (db.savingsBaseDate) return db.savingsBaseDate;
+  if (db.settings.cashMode!=='legacy') return '';
+  const now=new Date();
+  return localDate(new Date(now.getFullYear(),now.getMonth()-11,1));
+}
+
 function savingsBalance(asOf=localDate()) {
-  const baseDate=db.savingsBaseDate;
+  const baseDate=savingsOpeningDate();
   if (baseDate&&asOf<baseDate) return null;
   const included=date=>validDate(date)&&date<=asOf&&(!baseDate||date>=baseDate);
   const incomes=db.incomes.filter(row=>included(row.date)).reduce((sum,row)=>sum+row.amount,0);
   const expenses=db.expenses.filter(row=>included(row.date)).reduce((sum,row)=>sum+row.amount,0);
-  const {cashMode,ownerId}=db.settings;
-  const payroll=cashMode==='employer'?-cashPayrolls(included):
-    cashMode==='personal'&&ownerId?cashPayrolls(included,ownerId):0;
+  const payroll=db.settings.cashMode==='employer'?-cashPayrolls(included):savingsPayrollReceipts(included);
   return money(db.savingsBase+incomes-expenses+payroll);
 }
 
@@ -3966,6 +3997,10 @@ function getSavEnvelopesTotal() {
   return (db.envelopes||[]).reduce((s,e)=>s+((e.transactions||[]).reduce((ss,t)=>ss+t.amount,0)),0);
 }
 
+function availableSavings() {
+  return money(Math.max(0,(savingsBalance()??0)-getSavEnvelopesTotal()));
+}
+
 window.renderSavings = function() {
   if (!db.envelopes) db.envelopes = [];
 
@@ -3982,12 +4017,12 @@ window.renderSavings = function() {
 
   // Баланс-картка
   const totalEnvelopes = getSavEnvelopesTotal();
-  const freeBalance = Math.max(0, totalSaved - totalEnvelopes);
-  const overAllocated = totalEnvelopes - totalSaved; // >0, якщо в конвертах більше, ніж реально заощаджено
+  const freeBalance=availableSavings();
+  const overAllocated=money(Math.max(0,totalEnvelopes-Math.max(0,totalSaved)));
 
   document.getElementById('sav-total-amount').textContent=fmt(totalSaved);
-  document.getElementById('sav-balance-hint').textContent=db.settings.cashMode==='unassigned'
-    ? 'Оберіть режим обліку в налаштуваннях, щоб врахувати зарплатні виплати.'
+  document.getElementById('sav-balance-hint').textContent=!db.savingsBaseDate&&db.settings.cashMode==='legacy'
+    ? 'Для залишку без дати використовується початок 12-місячного періоду.'
     : (!db.savingsBaseDate&&db.savingsBase?'Вкажіть дату початкового залишку, щоб операції до цієї дати не впливали на баланс.':'');
 
   const periodPaid   = monthData.reduce((s,d)=>s+d.paid,0);
@@ -4018,9 +4053,9 @@ window.renderSavings = function() {
       <div class="sav-bd-label">У конвертах</div>
       <div class="sav-bd-val" style="color:var(--orange)">${fmt(totalEnvelopes)}</div>
     </div>
-    <div class="sav-bd-item" style="${overAllocated>0?'border-left:3px solid var(--red);':''}">
+    <div class="sav-bd-item">
       <div class="sav-bd-label">Вільні кошти</div>
-      <div class="sav-bd-val" style="color:${overAllocated>0?'var(--red)':'var(--accent)'}">${overAllocated>0?'−'+fmt(overAllocated):fmt(freeBalance)}</div>
+      <div class="sav-bd-val" style="color:var(--accent)">${fmt(freeBalance)}</div>
     </div>`;
 
   // Нерозподілений залишок / перерозподіл badge
@@ -4358,7 +4393,7 @@ function vizCard(label, value, color, type) {
   };
   return `<div style="background:var(--bg);border-radius:12px;padding:12px 14px;border:1px solid var(--border)">
     <div style="display:flex;align-items:center;gap:6px;color:${color};margin-bottom:6px;opacity:.8">${icons[type]||''}<span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">${label}</span></div>
-    <div style="font-size:20px;font-weight:300;color:${color};letter-spacing:-.02em">${fmt(Math.abs(value))}</div>
+    <div style="font-size:20px;font-weight:300;color:${color};letter-spacing:-.02em">${fmt(value)}</div>
   </div>`;
 }
 
@@ -4514,7 +4549,7 @@ window.openEnvAllocModal = function(envId) {
   const goal = env.goal || 0;
   const remaining = goal>0 ? Math.max(0, goal-saved) : null;
 
-  const free=money((savingsBalance()??0)-getSavEnvelopesTotal());
+  const free=availableSavings();
 
   document.getElementById('env-alloc-title').textContent = `Поповнити: ${htmlText(env.name)}`;
   document.getElementById('env-alloc-amount').value = '';
@@ -4572,7 +4607,7 @@ window.saveEnvTxEdit = function(envId, txId) {
   if (!Number.isFinite(amount)||amount===0) return showToast('err','Вкажіть ненульову суму.');
   const change=money(amount-tx.amount);
   const allocated=money(env.transactions.reduce((sum,row)=>sum+row.amount,0));
-  if (money(allocated+change)<0 || (change>0&&change>money((savingsBalance()??0)-getSavEnvelopesTotal()))) {
+  if (money(allocated+change)<0 || (change>0&&change>availableSavings())) {
     return showToast('err','Зміна виходить за межі доступного залишку.');
   }
   tx.amount = amount;
@@ -4593,7 +4628,7 @@ window.saveEnvAlloc = function(sign) {
   if (!env) return;
   if (!env.transactions) env.transactions = [];
   const allocated=money(env.transactions.reduce((sum,row)=>sum+row.amount,0));
-  const free=money((savingsBalance()??0)-getSavEnvelopesTotal());
+  const free=availableSavings();
   if (amount>0&&amount>free) return showToast('err','Сума перевищує вільний залишок.');
   if (amount<0&&allocated+amount<0) return showToast('err','Сума перевищує залишок у конверті.');
   env.transactions.push({id:uid(),amount,date:localDate(),note});
@@ -4613,7 +4648,7 @@ window.deleteEnvTx = function(envId, txId) {
   const remaining=(env.transactions||[]).filter(t=>t.id!==txId);
   const total=money(remaining.reduce((sum,row)=>sum+row.amount,0));
   const previous=money((env.transactions||[]).reduce((sum,row)=>sum+row.amount,0));
-  if (total<0 || (total>previous&&money(total-previous)>money((savingsBalance()??0)-getSavEnvelopesTotal()))) {
+  if (total<0 || (total>previous&&money(total-previous)>availableSavings())) {
     return showToast('err','Видалення виходить за межі доступного залишку.');
   }
   if (!confirm('Видалити операцію конверта?')) return;
@@ -5078,7 +5113,9 @@ window.toggleAnEmp = function(id, el, color) {
   renderAnalytics();
 };
 
-function populateIncomeCats() { document.getElementById('ic-cat').innerHTML='<option value="">Без категорії</option>'+db.incomeCats.map(c=>`<option value="${safeId(c.id)}">${renderIcon(c.icon,'14px')} ${htmlText(c.name)}</option>`).join(''); }
+function populateIncomeCats() {
+  document.getElementById('ic-cat').innerHTML=categoryOptions(incomeCategories());
+}
 
 let editIcatId = null;
 let icatSelectedColor = '#c5a059';
@@ -5182,7 +5219,7 @@ function drawDonut(cId, lId, data, opts) {
     }
     return `<div class="legend-item">
       <div class="legend-dot" style="background:${safeColor(d.color)}"></div>
-      <div class="legend-name">${d.iconHtml||htmlText(d.icon)} ${htmlText(d.name)}</div>
+      <div class="legend-name">${d.iconHtml||(d.icon?renderIcon(d.icon,'13px'):'')} <span>${htmlText(d.name)}</span></div>
       <div style="display:flex;align-items:center;gap:2px;margin-left:auto">
         <div class="legend-val">${fmt(d.value)}</div>
         ${diffHtml}
@@ -5346,7 +5383,7 @@ function validateBackup(input) {
     cashNotes:values=>identified(values,{amount:num,currency:str,rate:num,date,createdAt:optional(str),updatedAt:optional(str)}),
     savingsBase:num,savingsBaseDate:blank(date),savingsBaseNote:str,
     settings:value=>check(value,{pdfo:nonnegative,vijsk:nonnegative,esv:nonnegative,hours:nonnegative,
-      currency:oneOf('грн','UAH','USD','EUR'),cashMode:oneOf('unassigned','personal','employer'),
+      currency:oneOf('грн','UAH','USD','EUR'),cashMode:oneOf('legacy','excluded','personal','employer'),
       ownerId:blank(id),transferKeywords:optional(str)})&&value.pdfo+value.vijsk<=100&&value.esv<=100,
     budgetLimits:object,
     importRules:values=>rows(values,{token:str,catId:id})
